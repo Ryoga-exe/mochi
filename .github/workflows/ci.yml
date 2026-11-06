@@ -54,6 +54,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: production
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_D1_DATABASE_ID: ${{ vars.CLOUDFLARE_D1_DATABASE_ID }}
+      BETTER_AUTH_URL: ${{ vars.BETTER_AUTH_URL }}
+      PUBLIC_OWNER_NAME: ${{ vars.PUBLIC_OWNER_NAME }}
+      CLOUDFLARE_R2_BUCKET: ${{ vars.CLOUDFLARE_R2_BUCKET }}
     concurrency:
       group: cloudflare-production
       cancel-in-progress: false

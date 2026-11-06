@@ -7,22 +7,22 @@
     "node": ">=24.0.0"
   },
   "scripts": {
-    "dev": "vite --port 3000",
-    "postinstall": "wrangler types",
-    "build": "vite build",
+    "dev": "node scripts/worker-config.ts && vite --port 3000",
+    "postinstall": "pnpm cf:typegen",
+    "build": "node scripts/worker-config.ts && vite build",
     "preview": "vite preview --port 3000",
     "check": "biome check . && pnpm typecheck",
     "format": "biome format --write .",
     "lint:fix": "biome lint --write .",
-    "typecheck": "wrangler types && tsc --noEmit",
-    "test": "vitest run",
+    "typecheck": "pnpm cf:typegen && tsc --noEmit",
+    "test": "node scripts/worker-config.ts && vitest run",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "wrangler d1 migrations apply DB --local",
-    "cf:typegen": "wrangler types",
+    "db:migrate": "node scripts/worker-config.ts && wrangler d1 migrations apply DB --local --config wrangler.json",
+    "cf:typegen": "node scripts/worker-config.ts && wrangler types --config wrangler.json",
     "build:production": "node scripts/build-production.ts",
     "deploy:check": "node scripts/check-deploy.ts",
     "deploy": "pnpm build:production && pnpm deploy:check && pnpm db:migrate:production && wrangler deploy --config dist/server/wrangler.json",
-    "db:migrate:production": "wrangler d1 migrations apply DB --remote --config wrangler.jsonc --env production"
+    "db:migrate:production": "pnpm deploy:check && wrangler d1 migrations apply DB --remote --config dist/server/wrangler.json"
   },
   "dependencies": {
     "@tanstack/react-router": "^1.170.46",

@@ -43,7 +43,10 @@ export function ItemImages({
       <h3>
         画像（{assets.length} / {MAX_IMAGES_PER_ITEM} 枚）
       </h3>
-      <p>画像は追加した時点では非公開です。長辺2000px以下に縮小し、位置情報などのメタデータを除いて保存します。</p>
+      <p>
+        追加した画像は uses API
+        の公開対象には自動で追加されません。長辺2000px以下に縮小し、位置情報などのメタデータを除いて保存します。
+      </p>
       <form method="post" onSubmit={submit}>
         <fieldset disabled={disabled || item.archivedAt !== null || assets.length >= MAX_IMAGES_PER_ITEM}>
           <legend>画像を追加</legend>

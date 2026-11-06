@@ -9,4 +9,6 @@ dist/
 .env.*
 !.env.example
 worker-configuration.d.ts
+wrangler.json
+wrangler.jsonc
 .DS_Store

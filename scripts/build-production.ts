@@ -1,11 +1,13 @@
 import { spawnSync } from "node:child_process";
 import { rm } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
+import { writeWorkerConfig } from "./worker-config.ts";
 
 const root = new URL("../", import.meta.url);
+await writeWorkerConfig(true);
 const result = spawnSync(process.execPath, [fileURLToPath(new URL("node_modules/vite/bin/vite.js", root)), "build"], {
   cwd: root,
-  env: { ...process.env, NODE_ENV: "production", CLOUDFLARE_ENV: "production" },
+  env: { ...process.env, NODE_ENV: "production", CLOUDFLARE_ENV: "" },
   stdio: "inherit",
 });
 // The Vite plugin copies local secrets for `vite preview`. Production artifacts use Worker secrets instead.

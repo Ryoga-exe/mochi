@@ -251,7 +251,10 @@ export function UsesForm({
               </button>
             </fieldset>
           ))}
-          <p>本文に挿入した画像を非公開にするには、本文中の画像記法と画像の選択を両方外して保存してください。</p>
+          <p>
+            本文に挿入した画像を uses API
+            の公開対象から外すには、本文中の画像記法と画像の選択を両方外して保存してください。
+          </p>
           <details>
             <summary>プレビュー</summary>
             <h4>{title}</h4>

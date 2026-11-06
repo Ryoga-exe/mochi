@@ -5,5 +5,5 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   resolve: { tsconfigPaths: true },
-  plugins: [cloudflare({ viteEnvironment: { name: "ssr" } }), tanstackStart(), react()],
+  plugins: [cloudflare({ configPath: "wrangler.json", viteEnvironment: { name: "ssr" } }), tanstackStart(), react()],
 });
