@@ -1,16 +1,17 @@
 import { and, eq } from "drizzle-orm";
 import { MAX_IMAGE_BYTES } from "src/lib/media";
+import { z } from "zod";
 import type { AuthEnv } from "./auth";
 import { getDb } from "./db";
 import { itemAssets } from "./db/schema";
 import { adminResponse, errorResponse, HttpError, limitedBody, privateHeaders, publicHeaders } from "./http";
 import { addImage, type MediaEnv, removeImage } from "./media";
 import { publicUse, publicUses } from "./uses";
-import { id } from "./validation";
+import { idSchema, usesPaginationSchema } from "./validation";
 
 export function uploadImageResponse(env: MediaEnv & AuthEnv, request: Request, itemId: string) {
   return adminResponse(env, request, async () => {
-    if (!id(itemId)) throw new HttpError(400, "物品 ID が不正です。");
+    idSchema.parse(itemId);
     const bytes = await limitedBody(request, MAX_IMAGE_BYTES + 1024 * 1024);
     let form: FormData;
     try {
@@ -18,8 +19,7 @@ export function uploadImageResponse(env: MediaEnv & AuthEnv, request: Request, i
     } catch {
       throw new HttpError(400, "画像を multipart/form-data で送信してください。");
     }
-    const file = form.get("file");
-    if (!file || typeof file === "string") throw new HttpError(400, "画像を選んでください。");
+    const file = z.file({ error: "画像を選んでください。" }).parse(form.get("file"));
     if (file.size > MAX_IMAGE_BYTES) throw new HttpError(413, "画像は1枚5MB以下にしてください。");
     const asset = await addImage(env, itemId, file.name, new Uint8Array(await file.arrayBuffer()));
     return Response.json({ ok: true, value: asset }, { status: 201, headers: privateHeaders });
@@ -52,10 +52,10 @@ export async function publicUsesResponse(env: Pick<MediaEnv, "DB">, request: Req
       return Response.json(entry.content, { headers: publicHeaders });
     }
     const url = new URL(request.url);
-    const limit = Number(url.searchParams.get("limit") ?? 20);
-    const offset = Number(url.searchParams.get("offset") ?? 0);
-    if (!Number.isSafeInteger(limit) || limit < 1 || limit > 50 || !Number.isSafeInteger(offset) || offset < 0)
-      throw new HttpError(400, "limit は1〜50、offset は0以上の整数にしてください。");
+    const { limit, offset } = usesPaginationSchema.parse({
+      limit: url.searchParams.get("limit") ?? undefined,
+      offset: url.searchParams.get("offset") ?? undefined,
+    });
     return Response.json(await publicUses(env.DB, limit, offset), { headers: publicHeaders });
   } catch (error) {
     return errorResponse(error, publicHeaders);

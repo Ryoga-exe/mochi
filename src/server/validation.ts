@@ -1,110 +1,162 @@
-import { isItemStatus, isOwnership } from "src/lib/item-attributes";
-import { InventoryError } from "src/lib/mutation";
+import { itemStatuses, ownerships } from "src/lib/item-attributes";
+import { MAX_IMAGES_PER_ITEM, MAX_MARKDOWN_LENGTH } from "src/lib/media";
 import { MAX_PUBLIC_DESCRIPTION_LENGTH } from "src/lib/public-item";
+import { z } from "zod";
 
-export function object(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) throw new InventoryError("入力が不正です。");
-  return value as Record<string, unknown>;
+function textInput(label: string, max: number, { required = true, trim = true } = {}) {
+  const schema = z.string({ error: `${label}を入力してください。` });
+  const message = `${label}は${required ? "1〜" : ""}${max}文字で入力してください。`;
+  return (trim ? schema.trim() : schema).min(required ? 1 : 0, message).max(max, message);
 }
 
-export function text(
-  value: unknown,
-  label: string,
-  max: number,
-  { required = true, trim = true }: { required?: boolean; trim?: boolean } = {},
-): string {
-  if (typeof value !== "string") throw new InventoryError(`${label}を入力してください。`);
-  const result = trim ? value.trim() : value;
-  if ((required && !result) || result.length > max) {
-    throw new InventoryError(`${label}は${required ? "1〜" : ""}${max}文字で入力してください。`);
-  }
-  return result;
-}
+export const idSchema = z.guid({ error: "対象の ID が不正です。" });
+const optionalIdSchema = z
+  .preprocess((value) => (value === "" ? null : value), idSchema.nullish())
+  .transform((value) => value ?? null);
+const versionSchema = z
+  .int({ error: "更新情報が不正です。ページを再読み込みしてください。" })
+  .min(1, "更新情報が不正です。ページを再読み込みしてください。");
 
-export function id(value: unknown): string | null {
-  if (value === null || value === undefined || value === "") return null;
-  if (typeof value !== "string" || !/^[\da-f]{8}(-[\da-f]{4}){3}-[\da-f]{12}$/i.test(value)) {
-    throw new InventoryError("対象の ID が不正です。");
-  }
-  return value;
-}
-
-function version(value: unknown): number | null {
-  if (value === null || value === undefined) return null;
-  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 1) {
-    throw new InventoryError("更新情報が不正です。ページを再読み込みしてください。");
-  }
-  return value;
-}
-
-function identity(data: Record<string, unknown>) {
-  const result = { id: id(data.id), version: version(data.version) };
-  if ((result.id === null) !== (result.version === null)) throw new InventoryError("更新情報が不正です。");
-  return result;
-}
-
-export function parseTags(value: unknown): string[] {
-  if (value === null || value === undefined || value === "") return [];
-  if (typeof value === "string" && value.length > 1000) throw new InventoryError("タグの入力が長すぎます。");
-  const values = typeof value === "string" ? value.split(/[,、\n]/) : value;
-  if (!Array.isArray(values) || values.length > 100) throw new InventoryError("タグは20個まで設定できます。");
-  const tags = values.map((value) => {
-    const tag = text(value, "タグ", 40, { required: false }).normalize("NFC");
-    if (/[,、\r\n]/.test(tag)) throw new InventoryError("タグにカンマ・読点・改行は使えません。");
-    return tag;
+const identitySchema = z
+  .object(
+    {
+      id: optionalIdSchema,
+      version: versionSchema.nullish().transform((value) => value ?? null),
+    },
+    { error: "入力が不正です。" },
+  )
+  .refine(({ id, version }) => (id === null) === (version === null), {
+    error: "更新情報が不正です。",
   });
-  const unique = [...new Set(tags.filter(Boolean))];
-  if (unique.length > 20) throw new InventoryError("タグは20個まで設定できます。");
-  return unique;
-}
 
-export function parseItemInput(value: unknown) {
-  const data = object(value);
-  const isContainer = data.isContainer ?? false;
-  if (typeof isContainer !== "boolean") throw new InventoryError("収納可否の設定が不正です。");
-  const isPublic = data.isPublic ?? false;
-  if (typeof isPublic !== "boolean") throw new InventoryError("公開範囲の設定が不正です。");
-  const status = data.status ?? "available";
-  const ownership = data.ownership ?? "owned";
-  if (!isItemStatus(status)) throw new InventoryError("状態が不正です。");
-  if (!isOwnership(ownership)) throw new InventoryError("所有関係が不正です。");
-  const result = {
-    ...identity(data),
-    name: text(data.name, "品名", 200),
-    description: text(data.description ?? "", "説明", 10000, { required: false }),
-    isContainer,
-    isPublic,
-    publicDescription: text(data.publicDescription ?? "", "QR 公開用の説明", MAX_PUBLIC_DESCRIPTION_LENGTH, {
-      required: false,
+const tagSchema = textInput("タグ", 40, { required: false })
+  .normalize("NFC")
+  .regex(/^[^,、\r\n]*$/, "タグにカンマ・読点・改行は使えません。");
+const tagLimitMessage = "タグは20個まで設定できます。";
+export const tagsSchema = z
+  .union(
+    [
+      z
+        .string()
+        .max(1000, "タグの入力が長すぎます。")
+        .transform((value) => value.split(/[,、\n]/)),
+      z.array(z.unknown()),
+    ],
+    { error: tagLimitMessage },
+  )
+  .nullish()
+  .transform((value) => value ?? [])
+  .pipe(z.array(tagSchema).max(100, tagLimitMessage))
+  .transform((tags) => [...new Set(tags.filter(Boolean))])
+  .pipe(z.array(z.string()).max(20, tagLimitMessage));
+
+export const itemInputSchema = identitySchema
+  .safeExtend({
+    name: textInput("品名", 200),
+    description: textInput("説明", 10000, { required: false })
+      .nullish()
+      .transform((value) => value ?? ""),
+    isContainer: z
+      .boolean({ error: "収納可否の設定が不正です。" })
+      .nullish()
+      .transform((value) => value ?? false),
+    isPublic: z
+      .boolean({ error: "公開範囲の設定が不正です。" })
+      .nullish()
+      .transform((value) => value ?? false),
+    publicDescription: textInput("QR 公開用の説明", MAX_PUBLIC_DESCRIPTION_LENGTH, { required: false })
+      .nullish()
+      .transform((value) => value ?? ""),
+    tags: tagsSchema,
+    status: z
+      .enum(itemStatuses, { error: "状態が不正です。" })
+      .nullish()
+      .transform((value) => value ?? "available"),
+    ownership: z
+      .enum(ownerships, { error: "所有関係が不正です。" })
+      .nullish()
+      .transform((value) => value ?? "owned"),
+    locationId: optionalIdSchema,
+    containerItemId: optionalIdSchema,
+  })
+  .refine(({ locationId, containerItemId }) => !locationId || !containerItemId, {
+    error: "収納先は一つだけ指定してください。",
+  });
+
+export const locationInputSchema = identitySchema.safeExtend({
+  name: textInput("場所名", 100),
+  parentId: optionalIdSchema,
+});
+
+export const targetSchema = z.object({ id: idSchema, version: versionSchema }, { error: "対象が不正です。" });
+export const archiveInputSchema = targetSchema.extend({ archived: z.boolean({ error: "操作が不正です。" }) });
+export const itemMediaInputSchema = z.object(
+  {
+    itemId: z.guid({ error: "物品 ID が不正です。" }),
+  },
+  { error: "入力が不正です。" },
+);
+
+const usesImageSchema = z.object(
+  {
+    assetId: z.guid({ error: "公開画像の指定が不正です。" }),
+    inGallery: z.boolean({ error: "公開画像の指定が不正です。" }),
+    alt: textInput("画像の代替テキスト", 300, { required: false }),
+    caption: textInput("画像の説明", 1000, { required: false }),
+  },
+  { error: "公開画像の指定が不正です。" },
+);
+
+const externalUrlMessage = "製品リンクは http または https の URL にしてください。";
+const externalUrlSchema = textInput("製品リンク", 2000, { required: false })
+  .nullish()
+  .transform((value) => value ?? "")
+  .pipe(
+    z.union([z.literal(""), z.url({ protocol: /^https?$/, error: externalUrlMessage })], {
+      error: externalUrlMessage,
     }),
-    tags: parseTags(data.tags),
-    status,
-    ownership,
-    locationId: id(data.locationId),
-    containerItemId: id(data.containerItemId),
-  };
-  if (result.locationId && result.containerItemId) throw new InventoryError("収納先は一つだけ指定してください。");
-  return result;
-}
+  )
+  .transform((value) => value || null);
+const sortOrderMessage = "表示順は -10000〜10000 の整数にしてください。";
 
-export function parseLocationInput(value: unknown) {
-  const data = object(value);
-  return { ...identity(data), name: text(data.name, "場所名", 100), parentId: id(data.parentId) };
-}
+export const usesInputSchema = itemMediaInputSchema
+  .extend({
+    version: versionSchema.nullable(),
+    isPublished: z.boolean({ error: "公開設定が不正です。" }),
+    sortOrder: z.int({ error: sortOrderMessage }).min(-10000, sortOrderMessage).max(10000, sortOrderMessage),
+    title: textInput("公開タイトル", 200, { required: false }),
+    descriptionMarkdown: textInput("公開用の説明", MAX_MARKDOWN_LENGTH, { required: false, trim: false }),
+    externalUrl: externalUrlSchema,
+    section: textInput("セクション", 100, { required: false })
+      .nullish()
+      .transform((value) => value ?? ""),
+    tags: tagsSchema,
+    images: z
+      .array(usesImageSchema, { error: "公開画像の指定が不正です。" })
+      .max(MAX_IMAGES_PER_ITEM, "公開画像の指定が不正です。")
+      .refine((images) => new Set(images.map((image) => image.assetId)).size === images.length, {
+        error: "画像を重複して指定できません。",
+      }),
+  })
+  .refine(({ isPublished, title }) => !isPublished || title.length > 0, {
+    path: ["title"],
+    error: "公開タイトルは1〜200文字で入力してください。",
+  });
 
-export function parseTarget(value: unknown) {
-  const data = object(value);
-  const targetId = id(data.id);
-  const targetVersion = version(data.version);
-  if (!targetId || !targetVersion) throw new InventoryError("対象が不正です。");
-  return { id: targetId, version: targetVersion };
-}
+const paginationMessage = "limit は1〜50、offset は0以上の整数にしてください。";
+export const usesPaginationSchema = z.object({
+  limit: z.coerce
+    .number({ error: paginationMessage })
+    .pipe(z.int({ error: paginationMessage }).min(1, paginationMessage).max(50, paginationMessage))
+    .default(20),
+  offset: z.coerce
+    .number({ error: paginationMessage })
+    .pipe(z.int({ error: paginationMessage }).min(0, paginationMessage))
+    .default(0),
+});
 
-export function parseArchiveInput(value: unknown) {
-  const data = object(value);
-  if (typeof data.archived !== "boolean") throw new InventoryError("操作が不正です。");
-  return { ...parseTarget(value), archived: data.archived };
-}
-
-export type ItemInput = ReturnType<typeof parseItemInput>;
-export type LocationInput = ReturnType<typeof parseLocationInput>;
+export type ItemInput = z.output<typeof itemInputSchema>;
+export type LocationInput = z.output<typeof locationInputSchema>;
+export type TargetInput = z.output<typeof targetSchema>;
+export type ArchiveInput = z.output<typeof archiveInputSchema>;
+export type UsesInput = z.output<typeof usesInputSchema>;

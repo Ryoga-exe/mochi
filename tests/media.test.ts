@@ -6,8 +6,8 @@ import { archiveItem, saveItem } from "src/server/inventory";
 import { addImage, readItemMedia, removeImage } from "src/server/media";
 import { publicImageResponse, publicUsesResponse } from "src/server/media-http";
 import { mutation } from "src/server/mutation";
-import { parseUsesInput, publicUse, publicUses, saveUsesEntry, unpublishUse } from "src/server/uses";
-import { parseItemInput } from "src/server/validation";
+import { publicUse, publicUses, saveUsesEntry, unpublishUse } from "src/server/uses";
+import { itemInputSchema, type UsesInput, usesInputSchema } from "src/server/validation";
 import { afterAll, beforeAll, expect, test } from "vitest";
 import { testDatabase } from "./database";
 import { png } from "./images";
@@ -20,9 +20,12 @@ afterAll(async () => {
   await proxy?.dispose();
 });
 const item = () =>
-  saveItem(proxy.env.DB, parseItemInput({ name: "PRIVATE NAME", description: "PRIVATE MEMO", tags: "PRIVATE TAG" }));
+  saveItem(
+    proxy.env.DB,
+    itemInputSchema.parse({ name: "PRIVATE NAME", description: "PRIVATE MEMO", tags: "PRIVATE TAG" }),
+  );
 const input = (itemId: string, extra: Record<string, unknown> = {}) =>
-  parseUsesInput({
+  usesInputSchema.parse({
     itemId,
     version: null,
     title: "公開する道具",
@@ -32,7 +35,30 @@ const input = (itemId: string, extra: Record<string, unknown> = {}) =>
     sortOrder: 0,
     ...extra,
   });
-const save = (value: ReturnType<typeof parseUsesInput>) => saveUsesEntry(proxy.env.DB, value, "https://mochi.example");
+const save = (value: UsesInput) => saveUsesEntry(proxy.env.DB, value, "https://mochi.example");
+
+test("validates publication fields and image selection, and accepts only HTTP product links", () => {
+  const itemId = crypto.randomUUID();
+  const image = { assetId: crypto.randomUUID(), alt: "", caption: "", inGallery: false };
+  expect(input(itemId, { title: "  " }).title).toBe("");
+  expect(input(itemId, { externalUrl: "  " }).externalUrl).toBeNull();
+  for (const url of ["https://example.com/product", "http://localhost:3000/product"]) {
+    expect(input(itemId, { externalUrl: ` ${url} ` }).externalUrl).toBe(url);
+  }
+  for (const externalUrl of ["invalid", "ftp://example.com", "javascript:alert(1)"]) {
+    expect(() => input(itemId, { externalUrl })).toThrow("製品リンクは http または https の URL にしてください。");
+  }
+  for (const fields of [
+    { isPublished: true, title: "  " },
+    { version: undefined },
+    { sortOrder: 1.5 },
+    { sortOrder: 10001 },
+    { images: [image, image] },
+    { images: [{ ...image, inGallery: "true" }] },
+  ]) {
+    expect(() => input(itemId, fields)).toThrow();
+  }
+});
 
 test("stores private images in R2, exposes only selected public fields and revokes images on unpublish", async () => {
   const object = await item();
@@ -78,7 +104,7 @@ test("stores private images in R2, exposes only selected public fields and revok
     ok: false,
     message: expect.stringContaining("外して"),
   });
-  await saveItem(proxy.env.DB, parseItemInput({ ...object, description: "PRIVATE EDIT" }));
+  await saveItem(proxy.env.DB, itemInputSchema.parse({ ...object, description: "PRIVATE EDIT" }));
   expect((await publicUse(proxy.env.DB, entry.id))?.content).toEqual(content);
   await unpublishUse(proxy.env.DB, entry);
   expect((await publicUsesResponse(proxy.env, request, entry.id)).status).toBe(404);

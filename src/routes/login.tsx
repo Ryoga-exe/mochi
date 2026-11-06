@@ -1,13 +1,18 @@
-import { createFileRoute, redirect, type SearchSchemaInput } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { getViewer } from "src/functions/inventory";
 import { authClient } from "src/lib/auth-client";
 import { parseItemCode } from "src/lib/public-item";
+import { z } from "zod";
 
 export const Route = createFileRoute("/login")({
-  validateSearch: (search: { error?: unknown; item?: unknown } & SearchSchemaInput) => ({
-    error: typeof search.error === "string" ? search.error : undefined,
-    item: typeof search.item === "string" && parseItemCode(search.item) ? search.item : undefined,
+  validateSearch: z.object({
+    error: z.string().optional().catch(undefined),
+    item: z
+      .string()
+      .refine((value) => parseItemCode(value) !== null)
+      .optional()
+      .catch(undefined),
   }),
   beforeLoad: async ({ search }) => {
     if (await getViewer())

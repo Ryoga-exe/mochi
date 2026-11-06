@@ -1,5 +1,6 @@
 import { Buffer } from "node:buffer";
 import { InventoryError } from "src/lib/mutation";
+import { ZodError } from "zod";
 import type { AuthEnv } from "./auth";
 import { databaseError } from "./db/errors";
 import { getAdministrator } from "./session";
@@ -21,6 +22,11 @@ export const publicHeaders = {
 export const privateHeaders = { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" };
 
 export function errorResponse(error: unknown, headers: HeadersInit) {
+  if (error instanceof ZodError)
+    return Response.json(
+      { ok: false, message: error.issues[0]?.message ?? "入力が不正です。" },
+      { status: 400, headers },
+    );
   error = databaseError(error);
   if (error instanceof Response) return error;
   const status = error instanceof HttpError ? error.status : error instanceof InventoryError ? 400 : 500;

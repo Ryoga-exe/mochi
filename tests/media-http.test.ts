@@ -6,7 +6,7 @@ import { limitedBody } from "src/server/http";
 import { saveItem } from "src/server/inventory";
 import { type MediaEnv, readItemMedia } from "src/server/media";
 import { privateImageResponse, uploadImageResponse } from "src/server/media-http";
-import { parseItemInput } from "src/server/validation";
+import { itemInputSchema } from "src/server/validation";
 import { afterAll, beforeAll, expect, test } from "vitest";
 import { testDatabase } from "./database";
 import { png } from "./images";
@@ -49,7 +49,7 @@ beforeAll(async () => {
   });
   const signature = createHmac("sha256", secret).update(token).digest("base64");
   cookie = `better-auth.session_token=${encodeURIComponent(`${token}.${signature}`)}`;
-  itemId = (await saveItem(env.DB, parseItemInput({ name: "HTTP test" }))).id;
+  itemId = (await saveItem(env.DB, itemInputSchema.parse({ name: "HTTP test" }))).id;
 });
 afterAll(async () => {
   await proxy?.dispose();

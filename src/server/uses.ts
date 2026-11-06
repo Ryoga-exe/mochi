@@ -1,68 +1,12 @@
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { renderMarkdown } from "src/lib/markdown";
-import {
-  MAX_IMAGES_PER_ITEM,
-  MAX_MARKDOWN_LENGTH,
-  type PublicUse,
-  publicImageUrl,
-  type UsesImage,
-} from "src/lib/media";
+import { type PublicUse, publicImageUrl } from "src/lib/media";
 import { InventoryError } from "src/lib/mutation";
 import { getDb } from "./db";
 import { itemAssets, items, usesEntries } from "./db/schema";
-import { id, object, parseTags, parseTarget, text } from "./validation";
+import type { TargetInput, UsesInput } from "./validation";
 
-export function parseUsesInput(value: unknown) {
-  const data = object(value);
-  const itemId = id(data.itemId);
-  if (!itemId) throw new InventoryError("物品 ID が不正です。");
-  const version = data.version === null ? null : parseTarget({ id: itemId, version: data.version }).version;
-  if (typeof data.isPublished !== "boolean") throw new InventoryError("公開設定が不正です。");
-  if (!Number.isSafeInteger(data.sortOrder) || typeof data.sortOrder !== "number" || Math.abs(data.sortOrder) > 10000)
-    throw new InventoryError("表示順は -10000〜10000 の整数にしてください。");
-  if (!Array.isArray(data.images) || data.images.length > MAX_IMAGES_PER_ITEM)
-    throw new InventoryError("公開画像の指定が不正です。");
-  const images: UsesImage[] = data.images.map((value) => {
-    const image = object(value);
-    const assetId = id(image.assetId);
-    if (!assetId || typeof image.inGallery !== "boolean") throw new InventoryError("公開画像の指定が不正です。");
-    return {
-      assetId,
-      inGallery: image.inGallery,
-      alt: text(image.alt, "画像の代替テキスト", 300, { required: false }),
-      caption: text(image.caption, "画像の説明", 1000, { required: false }),
-    };
-  });
-  if (new Set(images.map((image) => image.assetId)).size !== images.length)
-    throw new InventoryError("画像を重複して指定できません。");
-  const externalUrl = text(data.externalUrl ?? "", "製品リンク", 2000, { required: false });
-  if (externalUrl) {
-    let valid = false;
-    try {
-      valid = ["http:", "https:"].includes(new URL(externalUrl).protocol);
-    } catch {
-      /* validated below */
-    }
-    if (!valid) throw new InventoryError("製品リンクは http または https の URL にしてください。");
-  }
-  return {
-    itemId,
-    version,
-    isPublished: data.isPublished,
-    sortOrder: data.sortOrder,
-    title: text(data.title, "公開タイトル", 200, { required: data.isPublished }),
-    descriptionMarkdown: text(data.descriptionMarkdown, "公開用の説明", MAX_MARKDOWN_LENGTH, {
-      required: false,
-      trim: false,
-    }),
-    externalUrl: externalUrl || null,
-    section: text(data.section ?? "", "セクション", 100, { required: false }),
-    tags: parseTags(data.tags),
-    images,
-  };
-}
-
-export async function saveUsesEntry(database: D1Database, input: ReturnType<typeof parseUsesInput>, baseUrl: string) {
+export async function saveUsesEntry(database: D1Database, input: UsesInput, baseUrl: string) {
   const db = getDb(database);
   const [item] = await db.select().from(items).where(eq(items.id, input.itemId)).limit(1);
   if (!item || item.archivedAt !== null) throw new InventoryError("管理中の物品の公開設定を編集してください。");
@@ -115,7 +59,7 @@ export async function saveUsesEntry(database: D1Database, input: ReturnType<type
   return saved[0];
 }
 
-export async function unpublishUse(database: D1Database, target: ReturnType<typeof parseTarget>) {
+export async function unpublishUse(database: D1Database, target: TargetInput) {
   const [entry] = await getDb(database)
     .update(usesEntries)
     .set({ isPublished: false, publicContent: null, updatedAt: Date.now(), version: sql`${usesEntries.version} + 1` })

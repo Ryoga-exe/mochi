@@ -3,7 +3,7 @@ import { type Inventory, registrationYearAt } from "src/lib/inventory";
 import { InventoryError } from "src/lib/mutation";
 import { getDb } from "./db";
 import { items, locations } from "./db/schema";
-import type { ItemInput, LocationInput } from "./validation";
+import type { ArchiveInput, ItemInput, LocationInput, TargetInput } from "./validation";
 
 export async function readInventory(database: D1Database): Promise<Inventory> {
   const db = getDb(database);
@@ -43,7 +43,7 @@ export async function saveItem(database: D1Database, input: ItemInput) {
   return created;
 }
 
-export async function archiveItem(database: D1Database, input: { id: string; version: number; archived: boolean }) {
+export async function archiveItem(database: D1Database, input: ArchiveInput) {
   const db = getDb(database);
   const [updated] = await db
     .update(items)
@@ -77,7 +77,7 @@ export async function saveLocation(database: D1Database, input: LocationInput) {
   return created;
 }
 
-export async function deleteLocation(database: D1Database, input: { id: string; version: number }) {
+export async function deleteLocation(database: D1Database, input: TargetInput) {
   const db = getDb(database);
   const deleted = await db
     .delete(locations)

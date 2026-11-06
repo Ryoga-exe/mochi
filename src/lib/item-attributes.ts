@@ -15,11 +15,3 @@ export const ownershipLabels = {
   owned: "自分の物",
   borrowed: "借りている物",
 } satisfies Record<Ownership, string>;
-
-export function isItemStatus(value: unknown): value is ItemStatus {
-  return itemStatuses.some((status) => status === value);
-}
-
-export function isOwnership(value: unknown): value is Ownership {
-  return ownerships.some((ownership) => ownership === value);
-}

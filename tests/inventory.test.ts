@@ -8,7 +8,7 @@ import {
 } from "src/lib/inventory";
 import { archiveItem, deleteLocation, readInventory, saveItem, saveLocation } from "src/server/inventory";
 import { mutation } from "src/server/mutation";
-import { parseArchiveInput, parseItemInput, parseLocationInput } from "src/server/validation";
+import { archiveInputSchema, itemInputSchema, locationInputSchema } from "src/server/validation";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { testDatabase } from "./database";
 
@@ -25,9 +25,9 @@ afterAll(async () => {
 });
 
 const item = (name: string, extra: Record<string, unknown> = {}) =>
-  saveItem(database, parseItemInput({ name, ...extra }));
+  saveItem(database, itemInputSchema.parse({ name, ...extra }));
 const location = (name: string, extra: Record<string, unknown> = {}) =>
-  saveLocation(database, parseLocationInput({ name, ...extra }));
+  saveLocation(database, locationInputSchema.parse({ name, ...extra }));
 
 describe("D1 inventory", () => {
   test("registers with a name only and allocates unique, permanent codes concurrently", async () => {
@@ -62,7 +62,7 @@ describe("D1 inventory", () => {
     expect(locationPath(room, inventory).map((part) => part.name)).toEqual(["自宅", "作業部屋"]);
     expect(containerChoices(inventory, bag.id).map((entry) => entry.id)).not.toContain(pouch.id);
     expect(containerChoices(inventory, bag.id).map((entry) => entry.id)).not.toContain(charger.id);
-    await saveItem(database, parseItemInput({ ...bag, locationId: lab.id }));
+    await saveItem(database, itemInputSchema.parse({ ...bag, locationId: lab.id }));
     inventory = createInventoryIndex(await readInventory(database));
     expect(storageLabel(charger, inventory)).toBe("研究室 › バッグ › ポーチ");
     expect(storagePath(charger, inventory).some((part) => part.id === lab.id)).toBe(true);
@@ -78,7 +78,7 @@ describe("D1 inventory", () => {
     expect(storageLabel(cable, createInventoryIndex(await readInventory(database)))).toBe(
       "（場所未設定） › 所在未設定のバッグ › 所在未設定のポーチ",
     );
-    const takenOut = await saveItem(database, parseItemInput({ ...cable, containerItemId: null }));
+    const takenOut = await saveItem(database, itemInputSchema.parse({ ...cable, containerItemId: null }));
     expect(storageLabel(takenOut, createInventoryIndex(await readInventory(database)))).toBe("未設定");
   });
 
@@ -86,7 +86,9 @@ describe("D1 inventory", () => {
     const bag = await item("循環バッグ", { isContainer: true });
     const pouch = await item("循環ポーチ", { containerItemId: bag.id, isContainer: true });
     for (const containerItemId of [pouch.id, bag.id]) {
-      expect(await mutation(() => saveItem(database, parseItemInput({ ...bag, containerItemId })))).toMatchObject({
+      expect(
+        await mutation(() => saveItem(database, itemInputSchema.parse({ ...bag, containerItemId }))),
+      ).toMatchObject({
         ok: false,
         message: expect.stringContaining("自分自身"),
       });
@@ -94,8 +96,8 @@ describe("D1 inventory", () => {
     const a = await item("A", { isContainer: true });
     const b = await item("B", { isContainer: true });
     const results = await Promise.allSettled([
-      saveItem(database, parseItemInput({ ...a, containerItemId: b.id })),
-      saveItem(database, parseItemInput({ ...b, containerItemId: a.id })),
+      saveItem(database, itemInputSchema.parse({ ...a, containerItemId: b.id })),
+      saveItem(database, itemInputSchema.parse({ ...b, containerItemId: a.id })),
     ]);
     expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
     expect(results.filter((result) => result.status === "rejected")).toHaveLength(1);
@@ -105,16 +107,18 @@ describe("D1 inventory", () => {
     const a = await location("階層A");
     const b = await location("階層B", { parentId: a.id });
     for (const parentId of [b.id, a.id]) {
-      expect(await mutation(() => saveLocation(database, parseLocationInput({ ...a, parentId })))).toMatchObject({
-        ok: false,
-        message: expect.stringContaining("自分自身"),
-      });
+      expect(await mutation(() => saveLocation(database, locationInputSchema.parse({ ...a, parentId })))).toMatchObject(
+        {
+          ok: false,
+          message: expect.stringContaining("自分自身"),
+        },
+      );
     }
     const c = await location("階層C");
     const d = await location("階層D");
     const results = await Promise.allSettled([
-      saveLocation(database, parseLocationInput({ ...c, parentId: d.id })),
-      saveLocation(database, parseLocationInput({ ...d, parentId: c.id })),
+      saveLocation(database, locationInputSchema.parse({ ...c, parentId: d.id })),
+      saveLocation(database, locationInputSchema.parse({ ...d, parentId: c.id })),
     ]);
     expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
   });
@@ -135,7 +139,7 @@ describe("D1 inventory", () => {
       ok: false,
       message: expect.stringContaining("中身"),
     });
-    await saveItem(database, parseItemInput({ ...child, containerItemId: null }));
+    await saveItem(database, itemInputSchema.parse({ ...child, containerItemId: null }));
     await archiveItem(database, { ...bag, archived: true });
     expect(await mutation(() => item("追加不可", { containerItemId: bag.id }))).toMatchObject({
       ok: false,
@@ -157,7 +161,7 @@ describe("D1 inventory", () => {
       ok: false,
       message: expect.stringContaining("物品・子の場所"),
     });
-    await saveItem(database, parseItemInput({ ...object, locationId: null }));
+    await saveItem(database, itemInputSchema.parse({ ...object, locationId: null }));
     await deleteLocation(database, parent);
     expect(createInventoryIndex(await readInventory(database)).locations.some((entry) => entry.id === parent.id)).toBe(
       false,
@@ -166,11 +170,13 @@ describe("D1 inventory", () => {
 
   test("rejects stale edits and archives rather than overwriting newer data", async () => {
     const original = await item("更新前");
-    await saveItem(database, parseItemInput({ ...original, name: "更新後" }));
-    await expect(saveItem(database, parseItemInput({ ...original, name: "上書き不可" }))).rejects.toThrow("他の画面");
+    await saveItem(database, itemInputSchema.parse({ ...original, name: "更新後" }));
+    await expect(saveItem(database, itemInputSchema.parse({ ...original, name: "上書き不可" }))).rejects.toThrow(
+      "他の画面",
+    );
     await expect(archiveItem(database, { ...original, archived: true })).rejects.toThrow("他の画面");
     const place = await location("改名前");
-    await saveLocation(database, parseLocationInput({ ...place, name: "改名後" }));
+    await saveLocation(database, locationInputSchema.parse({ ...place, name: "改名後" }));
     await expect(deleteLocation(database, place)).rejects.toThrow("他の画面");
   });
 
@@ -191,16 +197,42 @@ describe("D1 inventory", () => {
   });
 });
 
+test("normalizes optional fields and accepts only editable item and location fields", () => {
+  expect(itemInputSchema.parse({ name: "  道具  ", id: "", locationId: "", description: null, number: 999 })).toEqual({
+    id: null,
+    version: null,
+    name: "道具",
+    description: "",
+    isContainer: false,
+    isPublic: false,
+    publicDescription: "",
+    tags: [],
+    status: "available",
+    ownership: "owned",
+    locationId: null,
+    containerItemId: null,
+  });
+  expect(locationInputSchema.parse({ name: "  自宅  ", parentId: "", version: null })).toEqual({
+    id: null,
+    version: null,
+    name: "自宅",
+    parentId: null,
+  });
+});
+
 test("rejects blank/oversized names, invalid states, identities and simultaneous destinations", () => {
-  expect(() => parseItemInput({ name: "  " })).toThrow();
-  expect(() => parseItemInput({ name: "a".repeat(201) })).toThrow();
-  expect(() => parseItemInput({ name: "物品", status: "invalid" })).toThrow();
-  expect(() => parseItemInput({ name: "物品", ownership: "invalid" })).toThrow();
-  expect(() => parseItemInput({ name: "物品", locationId: "invalid" })).toThrow();
-  expect(() => parseItemInput({ name: "物品", id: crypto.randomUUID() })).toThrow();
+  expect(() => itemInputSchema.parse({ name: "  " })).toThrow();
+  expect(() => itemInputSchema.parse({ name: "a".repeat(201) })).toThrow();
+  expect(() => itemInputSchema.parse({ name: "物品", status: "invalid" })).toThrow();
+  expect(() => itemInputSchema.parse({ name: "物品", ownership: "invalid" })).toThrow();
+  expect(() => itemInputSchema.parse({ name: "物品", locationId: "invalid" })).toThrow();
+  expect(() => itemInputSchema.parse({ name: "物品", id: crypto.randomUUID() })).toThrow();
+  expect(() => itemInputSchema.parse({ name: "物品", version: 1 })).toThrow();
+  for (const version of [0, 1.5, Number.MAX_SAFE_INTEGER + 1])
+    expect(() => itemInputSchema.parse({ name: "物品", id: crypto.randomUUID(), version })).toThrow();
   expect(() =>
-    parseItemInput({ name: "物品", locationId: crypto.randomUUID(), containerItemId: crypto.randomUUID() }),
+    itemInputSchema.parse({ name: "物品", locationId: crypto.randomUUID(), containerItemId: crypto.randomUUID() }),
   ).toThrow();
-  expect(() => parseArchiveInput({ id: crypto.randomUUID(), version: 1, archived: "true" })).toThrow();
-  expect(() => parseLocationInput({ name: "" })).toThrow();
+  expect(() => archiveInputSchema.parse({ id: crypto.randomUUID(), version: 1, archived: "true" })).toThrow();
+  expect(() => locationInputSchema.parse({ name: "" })).toThrow();
 });

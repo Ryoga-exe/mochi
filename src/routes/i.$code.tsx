@@ -1,11 +1,12 @@
-import { createFileRoute, Link, notFound, redirect, type SearchSchemaInput } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, redirect } from "@tanstack/react-router";
 import { getViewer } from "src/functions/inventory";
 import { getPublicItem } from "src/functions/public-item";
 import { statusLabels } from "src/lib/item-attributes";
+import { z } from "zod";
 
 export const Route = createFileRoute("/i/$code")({
-  validateSearch: (search: { preview?: unknown } & SearchSchemaInput) => ({
-    preview: search.preview === true ? true : undefined,
+  validateSearch: z.object({
+    preview: z.literal(true).optional().catch(undefined),
   }),
   beforeLoad: async ({ params, search }) => {
     if (!search.preview && (await getViewer())) throw redirect({ to: "/items/$code", params });

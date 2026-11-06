@@ -1,26 +1,31 @@
-import { createFileRoute, Link, type SearchSchemaInput, useNavigate, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { type FormEvent, useMemo } from "react";
 import { ItemTable } from "src/components/inventory";
 import { getInventory } from "src/functions/inventory";
 import { availableTags, createInventoryIndex, filterItems, locationPath, statusLabels } from "src/lib/inventory";
-import { isItemStatus } from "src/lib/item-attributes";
+import { itemStatuses } from "src/lib/item-attributes";
+import { z } from "zod";
+
+const searchSchema = z.object({
+  q: z
+    .string()
+    .transform((value) => value.slice(0, 200))
+    .catch("")
+    .default(""),
+  tag: z
+    .string()
+    .trim()
+    .normalize("NFC")
+    .transform((value) => value.slice(0, 40))
+    .catch("")
+    .default(""),
+  location: z.string().catch("").default(""),
+  status: z.enum(itemStatuses).or(z.literal("")).catch("").default(""),
+  archived: z.enum(["active", "archived", "all"]).catch("active").default("active"),
+});
 
 export const Route = createFileRoute("/_app/")({
-  validateSearch: (
-    search: {
-      q?: unknown;
-      location?: unknown;
-      status?: unknown;
-      archived?: unknown;
-      tag?: unknown;
-    } & SearchSchemaInput,
-  ) => ({
-    q: typeof search.q === "string" ? search.q.slice(0, 200) : "",
-    tag: typeof search.tag === "string" ? search.tag.trim().normalize("NFC").slice(0, 40) : "",
-    location: typeof search.location === "string" ? search.location : "",
-    status: isItemStatus(search.status) ? search.status : "",
-    archived: search.archived === "archived" || search.archived === "all" ? search.archived : "active",
-  }),
+  validateSearch: searchSchema,
   loader: () => getInventory(),
   component: ItemList,
 });
@@ -36,16 +41,9 @@ function ItemList() {
 
   function filter(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const data = new FormData(event.currentTarget);
     void navigate({
       to: "/",
-      search: {
-        q: String(data.get("q") ?? ""),
-        tag: String(data.get("tag") ?? ""),
-        location: String(data.get("location") ?? ""),
-        status: String(data.get("status") ?? ""),
-        archived: String(data.get("archived") ?? "active"),
-      },
+      search: searchSchema.parse(Object.fromEntries(new FormData(event.currentTarget))),
     });
   }
 
