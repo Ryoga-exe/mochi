@@ -1,4 +1,5 @@
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
+import { type AnySQLiteColumn, check, index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const user = sqliteTable("user", {
   id: text("id").primaryKey(),
@@ -64,4 +65,54 @@ export const verification = sqliteTable(
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
   },
   (table) => [index("verification_identifier_idx").on(table.identifier)],
+);
+
+export const locations = sqliteTable(
+  "locations",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    parentId: text("parent_id").references((): AnySQLiteColumn => locations.id),
+    version: integer("version").notNull().default(1),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (table) => [
+    index("locations_parent_id_idx").on(table.parentId),
+    check("locations_name_required", sql`length(trim(${table.name})) BETWEEN 1 AND 100`),
+  ],
+);
+
+export const items = sqliteTable(
+  "items",
+  {
+    number: integer("number").primaryKey({ autoIncrement: true }),
+    id: text("id").notNull().unique(),
+    registrationYear: integer("registration_year"),
+    name: text("name").notNull(),
+    description: text("description").notNull().default(""),
+    isContainer: integer("is_container", { mode: "boolean" }).notNull().default(false),
+    tags: text("tags", { mode: "json" }).$type<string[]>().notNull().default(sql`'[]'`),
+    status: text("status", { enum: ["available", "lent", "lost", "retired"] })
+      .notNull()
+      .default("available"),
+    ownership: text("ownership", { enum: ["owned", "borrowed"] })
+      .notNull()
+      .default("owned"),
+    locationId: text("location_id").references(() => locations.id),
+    containerItemId: text("container_item_id").references((): AnySQLiteColumn => items.id),
+    archivedAt: integer("archived_at"),
+    version: integer("version").notNull().default(1),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (table) => [
+    index("items_location_id_idx").on(table.locationId),
+    index("items_container_item_id_idx").on(table.containerItemId),
+    index("items_archived_at_idx").on(table.archivedAt),
+    check("items_one_storage", sql`${table.locationId} IS NULL OR ${table.containerItemId} IS NULL`),
+    check("items_name_required", sql`length(trim(${table.name})) BETWEEN 1 AND 200`),
+    check("items_valid_status", sql`${table.status} IN ('available', 'lent', 'lost', 'retired')`),
+    check("items_valid_ownership", sql`${table.ownership} IN ('owned', 'borrowed')`),
+  ],
 );

@@ -8,6 +8,34 @@
       "when": 1793965517281,
       "tag": "0000_cheerful_ricochet",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1793972913519,
+      "tag": "0001_shocking_sentinels",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1793972913755,
+      "tag": "0002_storage-constraints",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1793974817032,
+      "tag": "0003_item-metadata",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1793974817271,
+      "tag": "0004_container-rules",
+      "breakpoints": true
     }
   ]
 }

@@ -2,7 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { getDb } from "./db";
 
-type AuthEnv = Pick<Cloudflare.Env, "DB"> & {
+export type AuthEnv = Pick<Cloudflare.Env, "DB"> & {
   BETTER_AUTH_URL?: string;
   BETTER_AUTH_SECRET?: string;
   GITHUB_CLIENT_ID?: string;

@@ -11,6 +11,15 @@ export const Route = createRootRoute({
   }),
   shellComponent: RootDocument,
   component: Outlet,
+  errorComponent: ({ reset }) => (
+    <main>
+      <h1>読み込みできませんでした。</h1>
+      <p>接続と設定を確認してから、もう一度お試しください。</p>
+      <button type="button" onClick={reset}>
+        再試行
+      </button>
+    </main>
+  ),
   notFoundComponent: () => <main>ページが見つかりません。</main>,
 });
 

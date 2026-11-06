@@ -15,6 +15,7 @@
     "format": "biome format --write .",
     "lint:fix": "biome lint --write .",
     "typecheck": "wrangler types && tsc --noEmit",
+    "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "wrangler d1 migrations apply DB --local",
     "cf:typegen": "wrangler types"
@@ -37,6 +38,7 @@
     "drizzle-kit": "^0.31.11",
     "typescript": "^7.0.2",
     "vite": "^8.3.6",
+    "vitest": "^5.1.0",
     "wrangler": "^4.158.0"
   }
 }
