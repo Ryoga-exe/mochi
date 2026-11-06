@@ -19,7 +19,7 @@ export function StoragePath({ item, inventory }: { item: Item; inventory: Invent
         <Fragment key={`${part.kind}:${part.id}`}>
           {index > 0 && " › "}
           {part.kind === "item" && part.code ? (
-            <Link to="/i/$code" params={{ code: part.code }}>
+            <Link to="/items/$code" params={{ code: part.code }}>
               {part.name}
             </Link>
           ) : (
@@ -44,18 +44,19 @@ export function ItemTable({ items, inventory }: { items: Item[]; inventory: Inve
           <th>収納先</th>
           <th>状態</th>
           <th>所有関係</th>
+          <th>QR 公開</th>
         </tr>
       </thead>
       <tbody>
         {items.map((item) => (
           <tr key={item.id}>
             <td>
-              <Link to="/i/$code" params={{ code: itemCode(item) }}>
+              <Link to="/items/$code" params={{ code: itemCode(item) }}>
                 {itemCode(item)}
               </Link>
             </td>
             <td>
-              <Link to="/i/$code" params={{ code: itemCode(item) }}>
+              <Link to="/items/$code" params={{ code: itemCode(item) }}>
                 {item.name}
               </Link>
               {item.isContainer && "（収納可）"}
@@ -69,6 +70,7 @@ export function ItemTable({ items, inventory }: { items: Item[]; inventory: Inve
             </td>
             <td>{statusLabels[item.status]}</td>
             <td>{ownershipLabels[item.ownership]}</td>
+            <td>{item.isPublic && item.archivedAt === null ? "公開" : "非公開"}</td>
           </tr>
         ))}
       </tbody>

@@ -1,4 +1,5 @@
 import { isItemStatus, isOwnership } from "src/lib/item-attributes";
+import { MAX_PUBLIC_DESCRIPTION_LENGTH } from "src/lib/public-item";
 
 export class InventoryError extends Error {}
 
@@ -57,6 +58,8 @@ export function parseItemInput(value: unknown) {
   const data = object(value);
   const isContainer = data.isContainer ?? false;
   if (typeof isContainer !== "boolean") throw new InventoryError("収納可否の設定が不正です。");
+  const isPublic = data.isPublic ?? false;
+  if (typeof isPublic !== "boolean") throw new InventoryError("公開範囲の設定が不正です。");
   const status = data.status ?? "available";
   const ownership = data.ownership ?? "owned";
   if (!isItemStatus(status)) throw new InventoryError("状態が不正です。");
@@ -66,6 +69,8 @@ export function parseItemInput(value: unknown) {
     name: text(data.name, "品名", 200),
     description: text(data.description ?? "", "説明", 10000, false),
     isContainer,
+    isPublic,
+    publicDescription: text(data.publicDescription ?? "", "QR 公開用の説明", MAX_PUBLIC_DESCRIPTION_LENGTH, false),
     tags: parseTags(data.tags),
     status,
     ownership,

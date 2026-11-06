@@ -20,7 +20,7 @@ function NewItem() {
       <ItemForm
         inventory={inventory}
         onSaved={async (item) => {
-          await navigate({ to: "/i/$code", params: { code: itemCode(item) } });
+          await navigate({ to: "/items/$code", params: { code: itemCode(item) } });
         }}
       />
     </>

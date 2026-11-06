@@ -2,13 +2,16 @@ import { createFileRoute, redirect, type SearchSchemaInput } from "@tanstack/rea
 import { useState } from "react";
 import { getViewer } from "src/functions/inventory";
 import { authClient } from "src/lib/auth-client";
+import { parseItemCode } from "src/lib/public-item";
 
 export const Route = createFileRoute("/login")({
-  validateSearch: (search: { error?: unknown } & SearchSchemaInput) => ({
+  validateSearch: (search: { error?: unknown; item?: unknown } & SearchSchemaInput) => ({
     error: typeof search.error === "string" ? search.error : undefined,
+    item: typeof search.item === "string" && parseItemCode(search.item) ? search.item : undefined,
   }),
-  beforeLoad: async () => {
-    if (await getViewer()) throw redirect({ to: "/" });
+  beforeLoad: async ({ search }) => {
+    if (await getViewer())
+      throw redirect(search.item ? { to: "/items/$code", params: { code: search.item } } : { to: "/" });
   },
   headers: () => ({ "Cache-Control": "private, no-store" }),
   component: Login,
@@ -25,8 +28,8 @@ function Login() {
     try {
       const result = await authClient.signIn.social({
         provider: "github",
-        callbackURL: "/",
-        errorCallbackURL: "/login",
+        callbackURL: search.item ? `/i/${search.item}` : "/",
+        errorCallbackURL: search.item ? `/login?item=${encodeURIComponent(search.item)}` : "/login",
       });
       if (result.error) throw new Error("ログインできませんでした。");
     } catch {

@@ -12,6 +12,7 @@ import {
   statusLabels,
   storageLabel,
 } from "src/lib/inventory";
+import { MAX_PUBLIC_DESCRIPTION_LENGTH } from "src/lib/public-item";
 
 export function ItemForm({
   item,
@@ -42,6 +43,8 @@ export function ItemForm({
         name: data.get("name"),
         description: data.get("description"),
         isContainer: data.has("isContainer"),
+        isPublic: data.has("isPublic"),
+        publicDescription: data.get("publicDescription"),
         tags: data.get("tags"),
         status: data.get("status"),
         ownership: data.get("ownership"),
@@ -141,6 +144,33 @@ export function ItemForm({
             </select>
           </label>
         </p>
+        <fieldset>
+          <legend>QR ページの公開範囲</legend>
+          <p>
+            <label>
+              <input type="checkbox" name="isPublic" defaultChecked={item?.isPublic ?? false} />
+              未ログインでも物品の基本情報を表示する
+            </label>
+          </p>
+          <p>
+            オンにすると、持ち主の表示名・品名・状態と、以下の短い説明を公開します。管理メモ・収納先・タグ・画像は表示しません。uses
+            API の公開設定とは別です。
+          </p>
+          <p>
+            <label>
+              短い説明（QR 公開用）
+              <br />
+              <textarea
+                name="publicDescription"
+                rows={3}
+                cols={50}
+                maxLength={MAX_PUBLIC_DESCRIPTION_LENGTH}
+                defaultValue={item?.publicDescription ?? ""}
+              />
+            </label>
+          </p>
+          <p>{MAX_PUBLIC_DESCRIPTION_LENGTH}文字まで。管理メモからは自動転記しません。</p>
+        </fieldset>
         <button type="submit">{pending ? "保存中…" : "保存"}</button>
       </fieldset>
       {error && <p role="alert">{error}</p>}

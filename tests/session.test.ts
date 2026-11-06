@@ -81,3 +81,7 @@ test("fails closed when authentication configuration is missing or the administr
   expect(() => getAuth({ DB: env.DB })).toThrow();
   expect(() => getAuth({ ...env, ADMIN_GITHUB_ID: "username" })).toThrow();
 });
+
+test("visitors without cookies do not need OAuth configuration to view public pages", async () => {
+  expect(await getAdministrator({ DB: env.DB }, new Headers())).toBeNull();
+});

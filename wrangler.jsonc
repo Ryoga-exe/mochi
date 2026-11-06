@@ -4,6 +4,7 @@
   "main": "@tanstack/react-start/server-entry",
   "compatibility_date": "2026-11-06",
   "compatibility_flags": ["nodejs_compat"],
+  "vars": { "PUBLIC_OWNER_NAME": "Ryoga" },
   "observability": { "enabled": true },
   "d1_databases": [
     {

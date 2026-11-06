@@ -9,7 +9,7 @@ import { getItemMedia } from "src/functions/media";
 import { useMutation } from "src/hooks/use-mutation";
 import { createInventoryIndex, itemCode, ownershipLabels, statusLabels, storagePath } from "src/lib/inventory";
 
-export const Route = createFileRoute("/_app/i/$code")({
+export const Route = createFileRoute("/_app/items/$code")({
   loader: async ({ params }) => {
     const inventory = await getInventory();
     const item = inventory.items.find((entry) => itemCode(entry) === params.code);
@@ -57,6 +57,14 @@ function ItemDetail() {
     <>
       <h2>{item.name}</h2>
       {item.archivedAt !== null && <p>アーカイブ済み</p>}
+      <p>QR ページ：{item.isPublic && item.archivedAt === null ? "基本情報を公開中" : "非公開"}</p>
+      <p>
+        <a href={`/i/${itemCode(item)}`}>QR コード用のリンク</a>
+        {" | "}
+        <Link to="/i/$code" params={{ code: itemCode(item) }} search={{ preview: true }}>
+          未ログイン時の表示を確認
+        </Link>
+      </p>
       <dl>
         <dt>管理番号</dt>
         <dd>{itemCode(item)}</dd>

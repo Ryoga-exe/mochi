@@ -13,7 +13,8 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as AppLocationsRouteImport } from './routes/_app.locations'
-import { Route as AppICodeRouteImport } from './routes/_app.i.$code'
+import { Route as ICodeRouteImport } from './routes/i.$code'
+import { Route as AppItemsCodeRouteImport } from './routes/_app.items.$code'
 import { Route as AppItemsNewRouteImport } from './routes/_app.items.new'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiImagesAssetIdRouteImport } from './routes/api.images.$assetId'
@@ -41,9 +42,14 @@ const AppLocationsRoute = AppLocationsRouteImport.update({
   path: '/locations',
   getParentRoute: () => AppRoute,
 } as any)
-const AppICodeRoute = AppICodeRouteImport.update({
+const ICodeRoute = ICodeRouteImport.update({
   id: '/i/$code',
   path: '/i/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppItemsCodeRoute = AppItemsCodeRouteImport.update({
+  id: '/items/$code',
+  path: '/items/$code',
   getParentRoute: () => AppRoute,
 } as any)
 const AppItemsNewRoute = AppItemsNewRouteImport.update({
@@ -87,7 +93,8 @@ export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
   '/locations': typeof AppLocationsRoute
-  '/i/$code': typeof AppICodeRoute
+  '/i/$code': typeof ICodeRoute
+  '/items/$code': typeof AppItemsCodeRoute
   '/items/new': typeof AppItemsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/images/$assetId': typeof ApiImagesAssetIdRoute
@@ -99,8 +106,9 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/locations': typeof AppLocationsRoute
+  '/i/$code': typeof ICodeRoute
   '/': typeof AppIndexRoute
-  '/i/$code': typeof AppICodeRoute
+  '/items/$code': typeof AppItemsCodeRoute
   '/items/new': typeof AppItemsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/images/$assetId': typeof ApiImagesAssetIdRoute
@@ -114,8 +122,9 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/_app/locations': typeof AppLocationsRoute
+  '/i/$code': typeof ICodeRoute
   '/_app/': typeof AppIndexRoute
-  '/_app/i/$code': typeof AppICodeRoute
+  '/_app/items/$code': typeof AppItemsCodeRoute
   '/_app/items/new': typeof AppItemsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/images/$assetId': typeof ApiImagesAssetIdRoute
@@ -131,6 +140,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/locations'
     | '/i/$code'
+    | '/items/$code'
     | '/items/new'
     | '/api/auth/$'
     | '/api/images/$assetId'
@@ -142,8 +152,9 @@ export interface FileRouteTypes {
   to:
     | '/login'
     | '/locations'
-    | '/'
     | '/i/$code'
+    | '/'
+    | '/items/$code'
     | '/items/new'
     | '/api/auth/$'
     | '/api/images/$assetId'
@@ -156,8 +167,9 @@ export interface FileRouteTypes {
     | '/_app'
     | '/login'
     | '/_app/locations'
+    | '/i/$code'
     | '/_app/'
-    | '/_app/i/$code'
+    | '/_app/items/$code'
     | '/_app/items/new'
     | '/api/auth/$'
     | '/api/images/$assetId'
@@ -170,6 +182,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
+  ICodeRoute: typeof ICodeRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiImagesAssetIdRoute: typeof ApiImagesAssetIdRoute
   ApiV1UsesRoute: typeof ApiV1UsesRouteWithChildren
@@ -206,11 +219,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppLocationsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/i/$code': {
-      id: '/_app/i/$code'
+    '/i/$code': {
+      id: '/i/$code'
       path: '/i/$code'
       fullPath: '/i/$code'
-      preLoaderRoute: typeof AppICodeRouteImport
+      preLoaderRoute: typeof ICodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app/items/$code': {
+      id: '/_app/items/$code'
+      path: '/items/$code'
+      fullPath: '/items/$code'
+      preLoaderRoute: typeof AppItemsCodeRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/items/new': {
@@ -268,14 +288,14 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppLocationsRoute: typeof AppLocationsRoute
   AppIndexRoute: typeof AppIndexRoute
-  AppICodeRoute: typeof AppICodeRoute
+  AppItemsCodeRoute: typeof AppItemsCodeRoute
   AppItemsNewRoute: typeof AppItemsNewRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppLocationsRoute: AppLocationsRoute,
   AppIndexRoute: AppIndexRoute,
-  AppICodeRoute: AppICodeRoute,
+  AppItemsCodeRoute: AppItemsCodeRoute,
   AppItemsNewRoute: AppItemsNewRoute,
 }
 
@@ -308,6 +328,7 @@ const ApiV1UsesRouteWithChildren = ApiV1UsesRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
+  ICodeRoute: ICodeRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiImagesAssetIdRoute: ApiImagesAssetIdRoute,
   ApiV1UsesRoute: ApiV1UsesRouteWithChildren,

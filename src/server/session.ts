@@ -4,6 +4,7 @@ import { getDb } from "./db";
 import { account } from "./db/schema";
 
 export async function getAdministrator(env: AuthEnv, headers: Headers) {
+  if (!headers.get("Cookie")) return null;
   const session = await getAuth(env).api.getSession({ headers });
   if (!session) return null;
   // Recheck the provider account on every request, including existing sessions.

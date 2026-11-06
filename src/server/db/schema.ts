@@ -97,6 +97,8 @@ export const items = sqliteTable(
     registrationYear: integer("registration_year"),
     name: text("name").notNull(),
     description: text("description").notNull().default(""),
+    isPublic: integer("is_public", { mode: "boolean" }).notNull().default(false),
+    publicDescription: text("public_description").notNull().default(""),
     isContainer: integer("is_container", { mode: "boolean" }).notNull().default(false),
     tags: text("tags", { mode: "json" }).$type<string[]>().notNull().default(sql`'[]'`),
     status: text("status", { enum: itemStatuses }).notNull().default("available"),

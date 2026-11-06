@@ -54,6 +54,7 @@ export async function archiveItem(database: D1Database, input: { id: string; ver
       .update(items)
       .set({
         archivedAt: input.archived ? Date.now() : null,
+        isPublic: input.archived ? false : sql`${items.isPublic}`,
         updatedAt: Date.now(),
         version: sql`${items.version} + 1`,
       })

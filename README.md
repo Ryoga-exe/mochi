@@ -37,3 +37,4 @@ pnpm db:migrate   # ローカル D1 に適用
 ```
 
 画像の追加・公開用 Markdown・uses API は [uses API](docs/uses-api.md) を参照してください。
+物品ごとの公開範囲と未ログイン時の表示は [QR ページ](docs/qr-pages.md) を参照してください。
