@@ -8,9 +8,14 @@ export function object(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-export function text(value: unknown, label: string, max: number, required = true): string {
+export function text(
+  value: unknown,
+  label: string,
+  max: number,
+  { required = true, trim = true }: { required?: boolean; trim?: boolean } = {},
+): string {
   if (typeof value !== "string") throw new InventoryError(`${label}を入力してください。`);
-  const result = value.trim();
+  const result = trim ? value.trim() : value;
   if ((required && !result) || result.length > max) {
     throw new InventoryError(`${label}は${required ? "1〜" : ""}${max}文字で入力してください。`);
   }
@@ -45,7 +50,7 @@ export function parseTags(value: unknown): string[] {
   const values = typeof value === "string" ? value.split(/[,、\n]/) : value;
   if (!Array.isArray(values) || values.length > 100) throw new InventoryError("タグは20個まで設定できます。");
   const tags = values.map((value) => {
-    const tag = text(value, "タグ", 40, false).normalize("NFC");
+    const tag = text(value, "タグ", 40, { required: false }).normalize("NFC");
     if (/[,、\r\n]/.test(tag)) throw new InventoryError("タグにカンマ・読点・改行は使えません。");
     return tag;
   });
@@ -67,10 +72,12 @@ export function parseItemInput(value: unknown) {
   const result = {
     ...identity(data),
     name: text(data.name, "品名", 200),
-    description: text(data.description ?? "", "説明", 10000, false),
+    description: text(data.description ?? "", "説明", 10000, { required: false }),
     isContainer,
     isPublic,
-    publicDescription: text(data.publicDescription ?? "", "QR 公開用の説明", MAX_PUBLIC_DESCRIPTION_LENGTH, false),
+    publicDescription: text(data.publicDescription ?? "", "QR 公開用の説明", MAX_PUBLIC_DESCRIPTION_LENGTH, {
+      required: false,
+    }),
     tags: parseTags(data.tags),
     status,
     ownership,

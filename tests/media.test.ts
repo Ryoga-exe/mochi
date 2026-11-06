@@ -89,6 +89,25 @@ test("stores private images in R2, exposes only selected public fields and revok
   expect(await proxy.env.ASSETS_BUCKET.get(first.objectKey)).toBeNull();
 });
 
+test("preserves Markdown source and formatting through drafts and publication", async () => {
+  const object = await item();
+  const source = "    const value = 1;\n\n# 道具\n\n説明  \n続き。\n\n- 最初\n  - 入れ子\n\n";
+  const draft = await save(input(object.id, { descriptionMarkdown: source }));
+  const { entry: stored } = await readItemMedia(proxy.env.DB, object.id);
+  expect(stored?.descriptionMarkdown).toBe(source);
+  expect(await publicUse(proxy.env.DB, draft.id)).toBeNull();
+  const published = await save(
+    input(object.id, { version: draft.version, descriptionMarkdown: stored?.descriptionMarkdown, isPublished: true }),
+  );
+  const { entry } = await readItemMedia(proxy.env.DB, object.id);
+  const content = (await publicUse(proxy.env.DB, published.id))?.content;
+  expect(entry?.descriptionMarkdown).toBe(source);
+  expect(content?.descriptionHtml).toContain("<pre><code>const value = 1;\n</code></pre>");
+  expect(content?.descriptionHtml).toContain("<h1>道具</h1>");
+  expect(content?.descriptionHtml).toMatch(/説明<br\s*\/>\s*続き。/);
+  expect(content?.descriptionMarkdown).toContain("# 道具");
+});
+
 test("rejects foreign, unready, unselected images and stale public edits", async () => {
   const a = await item();
   const b = await item();

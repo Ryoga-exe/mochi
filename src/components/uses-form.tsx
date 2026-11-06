@@ -22,7 +22,7 @@ export function UsesForm({
   item: Item;
   assets: ItemAsset[];
   entry: UsesEntry | null;
-  onChanged: () => Promise<void>;
+  onChanged: (message: string) => Promise<void>;
 }) {
   const save = useMutation(saveUsesAction);
   const unpublish = useMutation(unpublishUsesAction);
@@ -32,7 +32,6 @@ export function UsesForm({
   const [source, setSource] = useState(entry?.descriptionMarkdown ?? "");
   const [images, setImages] = useState<UsesImage[]>(entry?.images ?? []);
   const [isPublished, setPublished] = useState(entry?.isPublished ?? false);
-  const [message, setMessage] = useState("");
   const textarea = useRef<HTMLTextAreaElement>(null);
   const disabled = !hydrated || navigating || save.pending || unpublish.pending || item.archivedAt !== null;
   const assetUrls = Object.fromEntries(images.map((image) => [image.assetId, privateImageUrl(image.assetId)]));
@@ -70,7 +69,6 @@ export function UsesForm({
   }
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setMessage("");
     const data = new FormData(event.currentTarget);
     await save.run(
       {
@@ -85,10 +83,7 @@ export function UsesForm({
         tags: data.get("tags"),
         sortOrder: Number(data.get("sortOrder")),
       },
-      async () => {
-        await onChanged();
-        setMessage("公開設定を保存しました。");
-      },
+      () => onChanged("公開設定を保存しました。"),
     );
   }
 
@@ -105,7 +100,9 @@ export function UsesForm({
           <button
             type="button"
             disabled={disabled}
-            onClick={() => unpublish.run({ id: entry.id, version: entry.version }, onChanged)}
+            onClick={() =>
+              unpublish.run({ id: entry.id, version: entry.version }, () => onChanged("非公開にしました。"))
+            }
           >
             今すぐ非公開にする
           </button>
@@ -280,7 +277,6 @@ export function UsesForm({
         </fieldset>
         {save.error && <p role="alert">{save.error}</p>}
         {unpublish.error && <p role="alert">{unpublish.error}</p>}
-        {message && <p role="status">{message}</p>}
       </form>
     </section>
   );

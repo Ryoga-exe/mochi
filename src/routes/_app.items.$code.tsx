@@ -107,7 +107,11 @@ function ItemDetail() {
         item={item}
         assets={media.assets}
         entry={media.entry}
-        onChanged={() => router.invalidate({ sync: true })}
+        onChanged={async (message) => {
+          clearError();
+          await router.invalidate({ sync: true });
+          setMessage(message);
+        }}
       />
       <p>
         <button

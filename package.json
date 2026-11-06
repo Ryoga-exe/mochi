@@ -21,7 +21,7 @@
     "cf:typegen": "node scripts/worker-config.ts && wrangler types --config wrangler.json",
     "build:production": "node scripts/build-production.ts",
     "deploy:check": "node scripts/check-deploy.ts",
-    "deploy": "pnpm build:production && pnpm deploy:check && pnpm db:migrate:production && wrangler deploy --config dist/server/wrangler.json",
+    "deploy": "pnpm build:production && pnpm db:migrate:production && wrangler deploy --config dist/server/wrangler.json",
     "db:migrate:production": "pnpm deploy:check && wrangler d1 migrations apply DB --remote --config dist/server/wrangler.json"
   },
   "dependencies": {

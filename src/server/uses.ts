@@ -28,13 +28,13 @@ export function parseUsesInput(value: unknown) {
     return {
       assetId,
       inGallery: image.inGallery,
-      alt: text(image.alt, "画像の代替テキスト", 300, false),
-      caption: text(image.caption, "画像の説明", 1000, false),
+      alt: text(image.alt, "画像の代替テキスト", 300, { required: false }),
+      caption: text(image.caption, "画像の説明", 1000, { required: false }),
     };
   });
   if (new Set(images.map((image) => image.assetId)).size !== images.length)
     throw new InventoryError("画像を重複して指定できません。");
-  const externalUrl = text(data.externalUrl ?? "", "製品リンク", 2000, false);
+  const externalUrl = text(data.externalUrl ?? "", "製品リンク", 2000, { required: false });
   if (externalUrl) {
     let valid = false;
     try {
@@ -49,10 +49,13 @@ export function parseUsesInput(value: unknown) {
     version,
     isPublished: data.isPublished,
     sortOrder: data.sortOrder,
-    title: text(data.title, "公開タイトル", 200, data.isPublished),
-    descriptionMarkdown: text(data.descriptionMarkdown, "公開用の説明", MAX_MARKDOWN_LENGTH, false),
+    title: text(data.title, "公開タイトル", 200, { required: data.isPublished }),
+    descriptionMarkdown: text(data.descriptionMarkdown, "公開用の説明", MAX_MARKDOWN_LENGTH, {
+      required: false,
+      trim: false,
+    }),
     externalUrl: externalUrl || null,
-    section: text(data.section ?? "", "セクション", 100, false),
+    section: text(data.section ?? "", "セクション", 100, { required: false }),
     tags: parseTags(data.tags),
     images,
   };
