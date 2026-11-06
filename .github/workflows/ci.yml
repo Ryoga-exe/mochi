@@ -42,7 +42,7 @@ jobs:
             exit 1
           fi
       - name: Validate Worker bundle without deploying
-        run: pnpm exec wrangler deploy --dry-run --config dist/server/wrangler.json
+        run: pnpm exec wrangler deploy --dry-run
 
   deploy:
     name: Deploy
@@ -56,10 +56,6 @@ jobs:
     environment: production
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-      CLOUDFLARE_D1_DATABASE_ID: ${{ vars.CLOUDFLARE_D1_DATABASE_ID }}
-      BETTER_AUTH_URL: ${{ vars.BETTER_AUTH_URL }}
-      PUBLIC_OWNER_NAME: ${{ vars.PUBLIC_OWNER_NAME }}
-      CLOUDFLARE_R2_BUCKET: ${{ vars.CLOUDFLARE_R2_BUCKET }}
     concurrency:
       group: cloudflare-production
       cancel-in-progress: false
@@ -76,7 +72,6 @@ jobs:
       - name: Require Cloudflare credentials
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           test -n "$CLOUDFLARE_API_TOKEN" || { echo 'Set the production CLOUDFLARE_API_TOKEN secret.'; exit 1; }
           test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo 'Set the production CLOUDFLARE_ACCOUNT_ID variable.'; exit 1; }
@@ -84,7 +79,6 @@ jobs:
       - name: Apply migrations and deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           pnpm db:migrate:production
-          pnpm exec wrangler deploy --config dist/server/wrangler.json
+          pnpm exec wrangler deploy

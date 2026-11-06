@@ -7,8 +7,5 @@ dist/
 !.dev.vars.example
 .env
 .env.*
-!.env.example
 worker-configuration.d.ts
-wrangler.json
-wrangler.jsonc
 .DS_Store

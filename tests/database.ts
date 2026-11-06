@@ -12,7 +12,7 @@ export async function applyMigrations(database: D1Database, include: (name: stri
 }
 
 export async function testDatabase(include?: (name: string) => boolean) {
-  const proxy = await getPlatformProxy<Cloudflare.Env>({ configPath: "wrangler.json", persist: false });
+  const proxy = await getPlatformProxy<Cloudflare.Env>({ configPath: "wrangler.jsonc", persist: false });
   try {
     await applyMigrations(proxy.env.DB, include);
     return proxy;
