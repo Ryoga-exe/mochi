@@ -1,32 +1,34 @@
+import { crc32 } from "node:zlib";
 import { MAX_IMAGE_BYTES } from "src/lib/media";
 import { sanitizeImage } from "src/server/image-data";
 import { expect, test } from "vitest";
-import { png } from "./images";
+import { jpeg, png } from "./images";
 
-test("preserves JPEG pixels while removing EXIF, comments and trailing bytes", () => {
-  const photo = readFileSync(new URL("./fixtures/photo.jpg", import.meta.url));
+test("preserves JPEG image data while removing metadata and trailing bytes", () => {
   const metadata = Buffer.from("Exif GPS private location");
   const app = Buffer.alloc(metadata.length + 4);
   app[0] = 0xff;
   app[1] = 0xe1;
   app.writeUInt16BE(metadata.length + 2, 2);
   metadata.copy(app, 4);
-  const result = sanitizeImage(Buffer.concat([photo.subarray(0, 2), app, photo.subarray(2), Buffer.from("trailing")]));
+  const result = sanitizeImage(Buffer.concat([jpeg.subarray(0, 2), app, jpeg.subarray(2), Buffer.from("trailing")]));
   expect(result).toMatchObject({ width: 4, height: 3, contentType: "image/jpeg" });
   expect(Buffer.from(result.data).includes(metadata)).toBe(false);
-  expect(Buffer.from(result.data).subarray(-2)).toEqual(Buffer.from([0xff, 0xd9]));
-  expect(() => sanitizeImage(photo.subarray(0, -2))).toThrow();
+  const scan = jpeg.subarray(jpeg.indexOf(Buffer.from([0xff, 0xda])));
+  expect(Buffer.from(result.data).subarray(-scan.length)).toEqual(scan);
+  expect(() => sanitizeImage(jpeg.subarray(0, -2))).toThrow();
 });
 
 test("reads PNG dimensions and removes textual metadata and trailing data", () => {
-  const metadata = Buffer.from("GPS private location");
+  const metadata = Buffer.from("Description\0GPS private location");
   const chunk = Buffer.alloc(metadata.length + 12);
   chunk.writeUInt32BE(metadata.length);
   chunk.write("tEXt", 4);
   metadata.copy(chunk, 8);
+  chunk.writeUInt32BE(crc32(chunk.subarray(4, -4)), chunk.length - 4);
   const input = Buffer.concat([png.subarray(0, 33), chunk, png.subarray(33), Buffer.from("private trailing data")]);
   const result = sanitizeImage(input);
-  expect(result).toMatchObject({ width: 1, height: 1, contentType: "image/png" });
+  expect(result).toMatchObject({ width: 4, height: 3, contentType: "image/png" });
   expect(Buffer.from(result.data)).toEqual(png);
 });
 
@@ -40,7 +42,6 @@ test("rejects executable formats, truncated files, oversized files and dimension
   }
   const large = Buffer.from(png);
   large.writeUInt32BE(100000, 16);
+  large.writeUInt32BE(crc32(large.subarray(12, 29)), 29);
   expect(() => sanitizeImage(large)).toThrow("2400px");
 });
-
-import { readFileSync } from "node:fs";

@@ -8,6 +8,7 @@ import {
   storageLabel,
 } from "src/lib/inventory";
 import { archiveItem, readInventory, saveItem, saveLocation } from "src/server/inventory";
+import { mutation } from "src/server/mutation";
 import { parseItemInput, parseLocationInput } from "src/server/validation";
 import { afterAll, beforeAll, expect, test } from "vitest";
 import { applyMigrations, testDatabase } from "./database";
@@ -35,10 +36,15 @@ test("only explicit, active containers are candidates and server writes enforce 
   expect(choices.map((entry) => entry.id)).toContain(bag.id);
   expect(choices.map((entry) => entry.id)).not.toContain(laptop.id);
   expect(choices.map((entry) => entry.id)).not.toContain(archived.id);
-  await expect(item("入れられない物品", { containerItemId: laptop.id })).rejects.toThrow("収納先として使える");
-  await expect(saveItem(database, parseItemInput({ ...child, containerItemId: laptop.id }))).rejects.toThrow(
-    "収納先として使える",
-  );
+  for (const operation of [
+    () => item("入れられない物品", { containerItemId: laptop.id }),
+    () => saveItem(database, parseItemInput({ ...child, containerItemId: laptop.id })),
+  ]) {
+    expect(await mutation(operation)).toMatchObject({
+      ok: false,
+      message: expect.stringContaining("収納先として使える"),
+    });
+  }
   await expect(
     database.prepare("UPDATE items SET container_item_id = ? WHERE id = ?").bind(laptop.id, child.id).run(),
   ).rejects.toThrow("not_a_container");
@@ -49,9 +55,12 @@ test("only explicit, active containers are candidates and server writes enforce 
 test("an occupied container cannot be disabled and a rejected edit preserves tags", async () => {
   const box = await item("中身がある箱", { isContainer: true, tags: "備品" });
   const child = await item("箱の中身", { containerItemId: box.id });
-  await expect(saveItem(database, parseItemInput({ ...box, isContainer: false, tags: "変更不可" }))).rejects.toThrow(
-    "中身がある間",
-  );
+  expect(
+    await mutation(() => saveItem(database, parseItemInput({ ...box, isContainer: false, tags: "変更不可" }))),
+  ).toMatchObject({
+    ok: false,
+    message: expect.stringContaining("中身がある間"),
+  });
   const unchanged = createInventoryIndex(await readInventory(database)).items.find((entry) => entry.id === box.id);
   expect(unchanged).toMatchObject({ isContainer: true, tags: ["備品"], version: box.version });
   await saveItem(database, parseItemInput({ ...child, containerItemId: null }));

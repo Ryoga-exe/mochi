@@ -1,7 +1,8 @@
+import { Buffer } from "node:buffer";
+import { InventoryError } from "src/lib/mutation";
 import type { AuthEnv } from "./auth";
 import { databaseError } from "./db/errors";
 import { getAdministrator } from "./session";
-import { InventoryError } from "./validation";
 
 export class HttpError extends Error {
   constructor(
@@ -67,11 +68,5 @@ export async function limitedBody(request: Request, maxBytes: number) {
   } finally {
     reader.releaseLock();
   }
-  const result = new Uint8Array(length);
-  let offset = 0;
-  for (const chunk of chunks) {
-    result.set(chunk, offset);
-    offset += chunk.length;
-  }
-  return result;
+  return Buffer.concat(chunks, length);
 }

@@ -1,4 +1,5 @@
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
+import { renderMarkdown } from "src/lib/markdown";
 import {
   MAX_IMAGES_PER_ITEM,
   MAX_MARKDOWN_LENGTH,
@@ -6,10 +7,10 @@ import {
   publicImageUrl,
   type UsesImage,
 } from "src/lib/media";
+import { InventoryError } from "src/lib/mutation";
 import { getDb } from "./db";
 import { itemAssets, items, usesEntries } from "./db/schema";
-import { publicMarkdown } from "./public-markdown";
-import { InventoryError, id, object, parseTags, parseTarget, text } from "./validation";
+import { id, object, parseTags, parseTarget, text } from "./validation";
 
 export function parseUsesInput(value: unknown) {
   const data = object(value);
@@ -79,7 +80,7 @@ export async function saveUsesEntry(database: D1Database, input: ReturnType<type
     if (!asset) throw new InventoryError("公開画像はこの物品に追加済みの画像から選んでください。");
     return { ...image, url: publicImageUrl(baseUrl, entryId, image.assetId), width: asset.width, height: asset.height };
   });
-  const rendered = publicMarkdown(
+  const rendered = renderMarkdown(
     input.descriptionMarkdown,
     Object.fromEntries(publicImages.map((image) => [image.assetId, image.url])),
   );

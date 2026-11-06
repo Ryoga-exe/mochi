@@ -1,9 +1,9 @@
 import { and, asc, eq, sql } from "drizzle-orm";
 import { MAX_IMAGES_PER_ITEM } from "src/lib/media";
+import { InventoryError } from "src/lib/mutation";
 import { getDb } from "./db";
 import { itemAssets, items, usesEntries } from "./db/schema";
 import { sanitizeImage } from "./image-data";
-import { InventoryError } from "./validation";
 
 export type MediaEnv = Pick<Cloudflare.Env, "DB" | "ASSETS_BUCKET">;
 

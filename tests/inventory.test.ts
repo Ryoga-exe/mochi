@@ -7,6 +7,7 @@ import {
   storagePath,
 } from "src/lib/inventory";
 import { archiveItem, deleteLocation, readInventory, saveItem, saveLocation } from "src/server/inventory";
+import { mutation } from "src/server/mutation";
 import { parseArchiveInput, parseItemInput, parseLocationInput } from "src/server/validation";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { testDatabase } from "./database";
@@ -84,8 +85,12 @@ describe("D1 inventory", () => {
   test("rejects item cycles, including concurrent opposing moves", async () => {
     const bag = await item("循環バッグ", { isContainer: true });
     const pouch = await item("循環ポーチ", { containerItemId: bag.id, isContainer: true });
-    await expect(saveItem(database, parseItemInput({ ...bag, containerItemId: pouch.id }))).rejects.toThrow("自分自身");
-    await expect(saveItem(database, parseItemInput({ ...bag, containerItemId: bag.id }))).rejects.toThrow("自分自身");
+    for (const containerItemId of [pouch.id, bag.id]) {
+      expect(await mutation(() => saveItem(database, parseItemInput({ ...bag, containerItemId })))).toMatchObject({
+        ok: false,
+        message: expect.stringContaining("自分自身"),
+      });
+    }
     const a = await item("A", { isContainer: true });
     const b = await item("B", { isContainer: true });
     const results = await Promise.allSettled([
@@ -99,8 +104,12 @@ describe("D1 inventory", () => {
   test("rejects location cycles, including concurrent opposing moves", async () => {
     const a = await location("階層A");
     const b = await location("階層B", { parentId: a.id });
-    await expect(saveLocation(database, parseLocationInput({ ...a, parentId: b.id }))).rejects.toThrow("自分自身");
-    await expect(saveLocation(database, parseLocationInput({ ...a, parentId: a.id }))).rejects.toThrow("自分自身");
+    for (const parentId of [b.id, a.id]) {
+      expect(await mutation(() => saveLocation(database, parseLocationInput({ ...a, parentId })))).toMatchObject({
+        ok: false,
+        message: expect.stringContaining("自分自身"),
+      });
+    }
     const c = await location("階層C");
     const d = await location("階層D");
     const results = await Promise.allSettled([
@@ -122,20 +131,32 @@ describe("D1 inventory", () => {
   test("protects contents during archiving and prevents storing in archived items", async () => {
     const bag = await item("保護するバッグ", { isContainer: true });
     const child = await item("保護する物品", { containerItemId: bag.id });
-    await expect(archiveItem(database, { ...bag, archived: true })).rejects.toThrow("中身");
+    expect(await mutation(() => archiveItem(database, { ...bag, archived: true }))).toMatchObject({
+      ok: false,
+      message: expect.stringContaining("中身"),
+    });
     await saveItem(database, parseItemInput({ ...child, containerItemId: null }));
     await archiveItem(database, { ...bag, archived: true });
-    await expect(item("追加不可", { containerItemId: bag.id })).rejects.toThrow("アーカイブ済み");
+    expect(await mutation(() => item("追加不可", { containerItemId: bag.id }))).toMatchObject({
+      ok: false,
+      message: expect.stringContaining("アーカイブ済み"),
+    });
     expect(createInventoryIndex(await readInventory(database)).items.some((entry) => entry.id === child.id)).toBe(true);
   });
 
   test("protects occupied locations and permits deleting an empty location", async () => {
     const parent = await location("削除できない場所");
     const child = await location("子の場所", { parentId: parent.id });
-    await expect(deleteLocation(database, parent)).rejects.toThrow("物品・子の場所");
+    expect(await mutation(() => deleteLocation(database, parent))).toMatchObject({
+      ok: false,
+      message: expect.stringContaining("物品・子の場所"),
+    });
     await deleteLocation(database, child);
     const object = await item("直接置く物品", { locationId: parent.id });
-    await expect(deleteLocation(database, parent)).rejects.toThrow("物品・子の場所");
+    expect(await mutation(() => deleteLocation(database, parent))).toMatchObject({
+      ok: false,
+      message: expect.stringContaining("物品・子の場所"),
+    });
     await saveItem(database, parseItemInput({ ...object, locationId: null }));
     await deleteLocation(database, parent);
     expect(createInventoryIndex(await readInventory(database)).locations.some((entry) => entry.id === parent.id)).toBe(
@@ -163,7 +184,10 @@ describe("D1 inventory", () => {
         .bind(place.id, bag.id, child.id)
         .run(),
     ).rejects.toThrow("CHECK constraint failed");
-    await expect(item("存在しない場所", { locationId: crypto.randomUUID() })).rejects.toThrow("収納先が存在しない");
+    expect(await mutation(() => item("存在しない場所", { locationId: crypto.randomUUID() }))).toMatchObject({
+      ok: false,
+      message: expect.stringContaining("収納先が存在しない"),
+    });
   });
 });
 

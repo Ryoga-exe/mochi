@@ -1,6 +1,5 @@
-import type { MutationResult } from "src/lib/mutation";
+import { InventoryError, type MutationResult } from "src/lib/mutation";
 import { databaseError } from "./db/errors";
-import { InventoryError } from "./validation";
 
 export async function mutation<T>(action: () => Promise<T>): Promise<MutationResult<T>> {
   try {

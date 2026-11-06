@@ -57,7 +57,7 @@ test("stores private images in R2, exposes only selected public fields and revok
   expect(detail.headers.get("Access-Control-Allow-Origin")).toBe("*");
   expect(detail.headers.get("Cache-Control")).toBe("no-store");
   expect(content.images).toHaveLength(1);
-  expect(content.images[0]).toMatchObject({ assetId: first.id, inGallery: false, width: 1, height: 1 });
+  expect(content.images[0]).toMatchObject({ assetId: first.id, inGallery: false, width: 4, height: 3 });
   const serialized = JSON.stringify(content);
   for (const privateValue of [
     "PRIVATE",

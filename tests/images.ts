@@ -1,4 +1,4 @@
-export const png = Buffer.from(
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO/ael4AAAAASUVORK5CYII=",
-  "base64",
-);
+import { readFileSync } from "node:fs";
+
+export const jpeg = readFileSync(new URL("./fixtures/photo.jpg", import.meta.url));
+export const png = readFileSync(new URL("./fixtures/photo.png", import.meta.url));

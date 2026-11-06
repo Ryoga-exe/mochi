@@ -1,4 +1,4 @@
-import { InventoryError } from "../validation";
+import { InventoryError } from "src/lib/mutation";
 
 function causeMessage(error: unknown): string | undefined {
   if (!error || typeof error !== "object" || !("message" in error) || typeof error.message !== "string") return;

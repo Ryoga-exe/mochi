@@ -1,7 +1,6 @@
 import { isItemStatus, isOwnership } from "src/lib/item-attributes";
+import { InventoryError } from "src/lib/mutation";
 import { MAX_PUBLIC_DESCRIPTION_LENGTH } from "src/lib/public-item";
-
-export class InventoryError extends Error {}
 
 export function object(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new InventoryError("入力が不正です。");
