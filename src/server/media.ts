@@ -1,5 +1,4 @@
-import { and, asc, eq, sql } from "drizzle-orm";
-import { MAX_IMAGES_PER_ITEM } from "src/lib/media";
+import { and, asc, eq } from "drizzle-orm";
 import { InventoryError } from "src/lib/mutation";
 import { getDb } from "./db";
 import { itemAssets, items, usesEntries } from "./db/schema";
@@ -24,9 +23,6 @@ export async function addImage(env: MediaEnv, itemId: string, filename: string, 
   const db = getDb(env.DB);
   const [item] = await db.select().from(items).where(eq(items.id, itemId)).limit(1);
   if (!item || item.archivedAt !== null) throw new InventoryError("管理中の物品に画像を追加してください。");
-  const count = await db.select({ count: sql<number>`count(*)` }).from(itemAssets).where(eq(itemAssets.itemId, itemId));
-  if (count[0].count >= MAX_IMAGES_PER_ITEM)
-    throw new InventoryError(`画像は1物品${MAX_IMAGES_PER_ITEM}枚まで追加できます。`);
   const normalized = sanitizeImage(bytes);
   const id = crypto.randomUUID();
   const objectKey = `items/${itemId}/${id}`;

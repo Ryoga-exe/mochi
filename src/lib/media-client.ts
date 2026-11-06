@@ -1,4 +1,5 @@
 import { redirect } from "@tanstack/react-router";
+import imageCompression from "browser-image-compression";
 import { type ItemAsset, MAX_IMAGE_BYTES, MAX_ORIGINAL_BYTES, privateImageUrl } from "./media";
 import type { MutationResult } from "./mutation";
 
@@ -6,37 +7,24 @@ async function prepareImage(file: File) {
   if (file.size > MAX_ORIGINAL_BYTES) throw new Error("元の画像は20MB以下にしてください。");
   if (!file.type.startsWith("image/") || file.type === "image/svg+xml")
     throw new Error("写真または PNG・JPEG・WebP 画像を選んでください。");
-  const url = URL.createObjectURL(file);
+  const type = ["image/png", "image/webp"].includes(file.type) ? "image/png" : "image/jpeg";
+  let compressed: File;
   try {
-    const image = new Image();
-    image.src = url;
-    await image.decode();
-    const canvas = document.createElement("canvas");
-    const context = canvas.getContext("2d");
-    if (!context) throw new Error("画像を処理できません。");
-    let scale = Math.min(1, 2000 / Math.max(image.naturalWidth, image.naturalHeight));
-    const type = ["image/png", "image/webp"].includes(file.type) ? "image/png" : "image/jpeg";
-    for (let attempt = 0; attempt < 8; attempt++) {
-      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
-      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
-      context.drawImage(image, 0, 0, canvas.width, canvas.height);
-      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, 0.85));
-      if (!blob) throw new Error("画像を変換できません。");
-      if (blob.size <= MAX_IMAGE_BYTES) {
-        return new File([blob], `${file.name.replace(/\.[^.]+$/, "")}.${type === "image/png" ? "png" : "jpg"}`, {
-          type,
-        });
-      }
-      scale *= 0.75;
-    }
-    throw new Error("画像を5MB以下に変換できませんでした。");
-  } catch (error) {
-    if (error instanceof Error && error.name === "EncodingError")
-      throw new Error("読み込めない画像です。JPEG または PNG に変換してください。");
-    throw error;
-  } finally {
-    URL.revokeObjectURL(url);
+    compressed = await imageCompression(file, {
+      maxSizeMB: MAX_IMAGE_BYTES / 1024 ** 2,
+      maxWidthOrHeight: 2000,
+      fileType: type,
+      initialQuality: type === "image/png" ? 1 : 0.85,
+      // The library's worker loads its script from a CDN by default.
+      useWebWorker: false,
+    });
+  } catch {
+    throw new Error("画像を処理できません。JPEG または PNG に変換して再度追加してください。");
   }
+  if (compressed.size > MAX_IMAGE_BYTES) throw new Error("画像を5MB以下に変換できませんでした。");
+  return new File([compressed], `${file.name.replace(/\.[^.]+$/, "")}.${type === "image/png" ? "png" : "jpg"}`, {
+    type,
+  });
 }
 
 async function imageRequest<T>(url: string, init: RequestInit): Promise<MutationResult<T>> {

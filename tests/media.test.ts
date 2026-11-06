@@ -185,6 +185,10 @@ test("database guards concurrent deletion/publication and the 20 image limit", a
   );
   expect(images.filter((result) => result.status === "fulfilled")).toHaveLength(20);
   expect((await readItemMedia(proxy.env.DB, other.id)).assets).toHaveLength(20);
+  expect(await mutation(() => addImage(proxy.env, other.id, "limit.png", png))).toEqual({
+    ok: false,
+    message: "画像は1物品につき20枚までです。",
+  });
 });
 
 test("orders and paginates the API and rejects invalid query bounds", async () => {

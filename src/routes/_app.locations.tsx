@@ -21,7 +21,6 @@ function Locations() {
   const pending = save.pending || deletion.pending;
   const error = save.error || deletion.error;
   const [message, setMessage] = useState("");
-  const [formVersion, setFormVersion] = useState(0);
   const parents = inventory.locations.filter(
     (location) => !locationPath(location, inventory).some((part) => part.id === editing?.id),
   );
@@ -34,7 +33,8 @@ function Locations() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const data = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const data = new FormData(form);
     clearFeedback();
     await save.run(
       {
@@ -45,8 +45,8 @@ function Locations() {
       },
       async () => {
         await router.invalidate({ sync: true });
+        form.reset();
         setEditing(null);
-        setFormVersion((version) => version + 1);
         setMessage("保存しました。");
       },
     );
@@ -66,7 +66,7 @@ function Locations() {
     <>
       <h2>場所を管理</h2>
       <p>「自宅 › 作業部屋 › 棚」のように、場所を入れ子にできます。バッグやポーチは物品として登録してください。</p>
-      <form key={`${editing?.id ?? "new"}:${formVersion}`} method="post" onSubmit={submit}>
+      <form key={editing?.id ?? "new"} method="post" onSubmit={submit}>
         <fieldset disabled={!hydrated || pending || navigating}>
           <legend>{editing ? "場所を編集" : "場所を追加"}</legend>
           <p>
