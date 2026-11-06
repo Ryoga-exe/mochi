@@ -2,12 +2,12 @@ import { isItemStatus, isOwnership } from "src/lib/item-attributes";
 
 export class InventoryError extends Error {}
 
-function object(value: unknown): Record<string, unknown> {
+export function object(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new InventoryError("入力が不正です。");
   return value as Record<string, unknown>;
 }
 
-function text(value: unknown, label: string, max: number, required = true): string {
+export function text(value: unknown, label: string, max: number, required = true): string {
   if (typeof value !== "string") throw new InventoryError(`${label}を入力してください。`);
   const result = value.trim();
   if ((required && !result) || result.length > max) {
@@ -16,7 +16,7 @@ function text(value: unknown, label: string, max: number, required = true): stri
   return result;
 }
 
-function id(value: unknown): string | null {
+export function id(value: unknown): string | null {
   if (value === null || value === undefined || value === "") return null;
   if (typeof value !== "string" || !/^[\da-f]{8}(-[\da-f]{4}){3}-[\da-f]{12}$/i.test(value)) {
     throw new InventoryError("対象の ID が不正です。");
@@ -38,7 +38,7 @@ function identity(data: Record<string, unknown>) {
   return result;
 }
 
-function parseTags(value: unknown): string[] {
+export function parseTags(value: unknown): string[] {
   if (value === null || value === undefined || value === "") return [];
   if (typeof value === "string" && value.length > 1000) throw new InventoryError("タグの入力が長すぎます。");
   const values = typeof value === "string" ? value.split(/[,、\n]/) : value;

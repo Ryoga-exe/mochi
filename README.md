@@ -30,8 +30,10 @@ pnpm check        # 書式・Lint・型を検査
 pnpm format       # フォーマット
 pnpm lint:fix     # 自動修正できる Lint 指摘を直す
 pnpm build        # ビルド
-pnpm test         # D1・認証・収納のテスト
+pnpm test         # D1・認証・画像・公開 API のテスト
 pnpm preview      # ビルド結果をローカルで確認
 pnpm db:generate  # スキーマからマイグレーションを生成
 pnpm db:migrate   # ローカル D1 に適用
 ```
+
+画像の追加・公開用 Markdown・uses API は [uses API](docs/uses-api.md) を参照してください。

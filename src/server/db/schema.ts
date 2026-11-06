@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { type AnySQLiteColumn, check, index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { itemStatuses, ownerships } from "src/lib/item-attributes";
+import type { PublicUse, UsesImage } from "src/lib/media";
 
 // SQLite CHECK expressions require literals, not bind parameters.
 const sqliteEnum = (values: readonly string[]) =>
@@ -116,4 +117,47 @@ export const items = sqliteTable(
     check("items_valid_status", sql`${table.status} IN (${sqliteEnum(itemStatuses)})`),
     check("items_valid_ownership", sql`${table.ownership} IN (${sqliteEnum(ownerships)})`),
   ],
+);
+
+export const itemAssets = sqliteTable(
+  "item_assets",
+  {
+    id: text("id").primaryKey(),
+    itemId: text("item_id")
+      .notNull()
+      .references(() => items.id),
+    objectKey: text("object_key").notNull().unique(),
+    filename: text("filename").notNull(),
+    contentType: text("content_type", { enum: ["image/jpeg", "image/png"] }).notNull(),
+    bytes: integer("bytes").notNull(),
+    width: integer("width").notNull(),
+    height: integer("height").notNull(),
+    state: text("state", { enum: ["uploading", "ready", "deleting"] }).notNull(),
+    createdAt: integer("created_at").notNull(),
+  },
+  (table) => [index("item_assets_item_id_idx").on(table.itemId)],
+);
+
+export const usesEntries = sqliteTable(
+  "uses_entries",
+  {
+    id: text("id").primaryKey(),
+    itemId: text("item_id")
+      .notNull()
+      .unique()
+      .references(() => items.id),
+    title: text("title").notNull().default(""),
+    descriptionMarkdown: text("description_markdown").notNull().default(""),
+    externalUrl: text("external_url"),
+    section: text("section").notNull().default(""),
+    tags: text("tags", { mode: "json" }).$type<string[]>().notNull().default(sql`'[]'`),
+    images: text("images", { mode: "json" }).$type<UsesImage[]>().notNull().default(sql`'[]'`),
+    sortOrder: integer("sort_order").notNull().default(0),
+    isPublished: integer("is_published", { mode: "boolean" }).notNull().default(false),
+    publicContent: text("public_content", { mode: "json" }).$type<PublicUse>(),
+    version: integer("version").notNull().default(1),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (table) => [index("uses_entries_published_order_idx").on(table.isPublished, table.sortOrder, table.id)],
 );

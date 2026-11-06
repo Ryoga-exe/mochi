@@ -1,6 +1,7 @@
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { type Inventory, registrationYearAt } from "src/lib/inventory";
 import { getDb } from "./db";
+import { databaseError } from "./db/errors";
 import { items, locations } from "./db/schema";
 import { InventoryError, type ItemInput, type LocationInput } from "./validation";
 
@@ -15,30 +16,6 @@ export async function readInventory(database: D1Database): Promise<Inventory> {
 
 function stale(): never {
   throw new InventoryError("他の画面で更新されたか、対象が見つかりません。再読み込みしてやり直してください。");
-}
-
-function causeMessage(error: unknown): string | undefined {
-  if (!error || typeof error !== "object" || !("message" in error) || typeof error.message !== "string") return;
-  return ("cause" in error ? causeMessage(error.cause) : undefined) ?? error.message;
-}
-
-function databaseError(error: unknown): never {
-  // Drizzle's wrapper includes SQL and parameter values. Only inspect the SQLite cause.
-  const code =
-    causeMessage(error)
-      ?.replace(/^D1_ERROR: /, "")
-      .split(": SQLITE_CONSTRAINT")[0] ?? "";
-  const messages: Record<string, string> = {
-    item_cycle: "自分自身や、自分の配下には移動できません。",
-    location_cycle: "自分自身や、自分の配下には移動できません。",
-    container_not_empty: "中身がある物品はアーカイブできません。先に中身を移動してください。",
-    container_flag_in_use: "中身がある間は収納先の設定をオフにできません。先に中身を移動してください。",
-    not_a_container: "収納先として使える物品を選んでください。入れ物側の「収納先として使う」をオンにできます。",
-    archived_container: "アーカイブ済みの物品には収納できません。",
-    "FOREIGN KEY constraint failed": "収納先が存在しないか、この場所に物品・子の場所が残っています。",
-  };
-  if (Object.hasOwn(messages, code)) throw new InventoryError(messages[code]);
-  throw error;
 }
 
 export async function saveItem(database: D1Database, input: ItemInput) {
@@ -66,7 +43,7 @@ export async function saveItem(database: D1Database, input: ItemInput) {
       .returning();
     return created;
   } catch (error) {
-    return databaseError(error);
+    throw databaseError(error);
   }
 }
 
@@ -84,7 +61,7 @@ export async function archiveItem(database: D1Database, input: { id: string; ver
       .returning();
     return updated ?? stale();
   } catch (error) {
-    return databaseError(error);
+    throw databaseError(error);
   }
 }
 
@@ -107,7 +84,7 @@ export async function saveLocation(database: D1Database, input: LocationInput) {
       .returning();
     return created;
   } catch (error) {
-    return databaseError(error);
+    throw databaseError(error);
   }
 }
 
@@ -120,6 +97,6 @@ export async function deleteLocation(database: D1Database, input: { id: string; 
       .returning({ id: locations.id });
     if (!deleted.length) stale();
   } catch (error) {
-    databaseError(error);
+    throw databaseError(error);
   }
 }

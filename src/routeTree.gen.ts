@@ -16,6 +16,11 @@ import { Route as AppLocationsRouteImport } from './routes/_app.locations'
 import { Route as AppICodeRouteImport } from './routes/_app.i.$code'
 import { Route as AppItemsNewRouteImport } from './routes/_app.items.new'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiImagesAssetIdRouteImport } from './routes/api.images.$assetId'
+import { Route as ApiV1UsesRouteImport } from './routes/api.v1.uses'
+import { Route as ApiItemsItemIdImagesRouteImport } from './routes/api.items.$itemId.images'
+import { Route as ApiV1UsesIdRouteImport } from './routes/api.v1.uses.$id'
+import { Route as ApiV1UsesIdImagesAssetIdRouteImport } from './routes/api.v1.uses.$id.images.$assetId'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -51,6 +56,32 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiImagesAssetIdRoute = ApiImagesAssetIdRouteImport.update({
+  id: '/api/images/$assetId',
+  path: '/api/images/$assetId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1UsesRoute = ApiV1UsesRouteImport.update({
+  id: '/api/v1/uses',
+  path: '/api/v1/uses',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiItemsItemIdImagesRoute = ApiItemsItemIdImagesRouteImport.update({
+  id: '/api/items/$itemId/images',
+  path: '/api/items/$itemId/images',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1UsesIdRoute = ApiV1UsesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ApiV1UsesRoute,
+} as any)
+const ApiV1UsesIdImagesAssetIdRoute =
+  ApiV1UsesIdImagesAssetIdRouteImport.update({
+    id: '/images/$assetId',
+    path: '/images/$assetId',
+    getParentRoute: () => ApiV1UsesIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
@@ -59,6 +90,11 @@ export interface FileRoutesByFullPath {
   '/i/$code': typeof AppICodeRoute
   '/items/new': typeof AppItemsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/images/$assetId': typeof ApiImagesAssetIdRoute
+  '/api/v1/uses': typeof ApiV1UsesRouteWithChildren
+  '/api/items/$itemId/images': typeof ApiItemsItemIdImagesRoute
+  '/api/v1/uses/$id': typeof ApiV1UsesIdRouteWithChildren
+  '/api/v1/uses/$id/images/$assetId': typeof ApiV1UsesIdImagesAssetIdRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -67,6 +103,11 @@ export interface FileRoutesByTo {
   '/i/$code': typeof AppICodeRoute
   '/items/new': typeof AppItemsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/images/$assetId': typeof ApiImagesAssetIdRoute
+  '/api/v1/uses': typeof ApiV1UsesRouteWithChildren
+  '/api/items/$itemId/images': typeof ApiItemsItemIdImagesRoute
+  '/api/v1/uses/$id': typeof ApiV1UsesIdRouteWithChildren
+  '/api/v1/uses/$id/images/$assetId': typeof ApiV1UsesIdImagesAssetIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -77,13 +118,39 @@ export interface FileRoutesById {
   '/_app/i/$code': typeof AppICodeRoute
   '/_app/items/new': typeof AppItemsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/images/$assetId': typeof ApiImagesAssetIdRoute
+  '/api/v1/uses': typeof ApiV1UsesRouteWithChildren
+  '/api/items/$itemId/images': typeof ApiItemsItemIdImagesRoute
+  '/api/v1/uses/$id': typeof ApiV1UsesIdRouteWithChildren
+  '/api/v1/uses/$id/images/$assetId': typeof ApiV1UsesIdImagesAssetIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/login' | '/locations' | '/i/$code' | '/items/new' | '/api/auth/$'
+    | '/'
+    | '/login'
+    | '/locations'
+    | '/i/$code'
+    | '/items/new'
+    | '/api/auth/$'
+    | '/api/images/$assetId'
+    | '/api/v1/uses'
+    | '/api/items/$itemId/images'
+    | '/api/v1/uses/$id'
+    | '/api/v1/uses/$id/images/$assetId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/locations' | '/' | '/i/$code' | '/items/new' | '/api/auth/$'
+  to:
+    | '/login'
+    | '/locations'
+    | '/'
+    | '/i/$code'
+    | '/items/new'
+    | '/api/auth/$'
+    | '/api/images/$assetId'
+    | '/api/v1/uses'
+    | '/api/items/$itemId/images'
+    | '/api/v1/uses/$id'
+    | '/api/v1/uses/$id/images/$assetId'
   id:
     | '__root__'
     | '/_app'
@@ -93,12 +160,20 @@ export interface FileRouteTypes {
     | '/_app/i/$code'
     | '/_app/items/new'
     | '/api/auth/$'
+    | '/api/images/$assetId'
+    | '/api/v1/uses'
+    | '/api/items/$itemId/images'
+    | '/api/v1/uses/$id'
+    | '/api/v1/uses/$id/images/$assetId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiImagesAssetIdRoute: typeof ApiImagesAssetIdRoute
+  ApiV1UsesRoute: typeof ApiV1UsesRouteWithChildren
+  ApiItemsItemIdImagesRoute: typeof ApiItemsItemIdImagesRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -152,6 +227,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/images/$assetId': {
+      id: '/api/images/$assetId'
+      path: '/api/images/$assetId'
+      fullPath: '/api/images/$assetId'
+      preLoaderRoute: typeof ApiImagesAssetIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/uses': {
+      id: '/api/v1/uses'
+      path: '/api/v1/uses'
+      fullPath: '/api/v1/uses'
+      preLoaderRoute: typeof ApiV1UsesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/items/$itemId/images': {
+      id: '/api/items/$itemId/images'
+      path: '/api/items/$itemId/images'
+      fullPath: '/api/items/$itemId/images'
+      preLoaderRoute: typeof ApiItemsItemIdImagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/uses/$id': {
+      id: '/api/v1/uses/$id'
+      path: '/$id'
+      fullPath: '/api/v1/uses/$id'
+      preLoaderRoute: typeof ApiV1UsesIdRouteImport
+      parentRoute: typeof ApiV1UsesRoute
+    }
+    '/api/v1/uses/$id/images/$assetId': {
+      id: '/api/v1/uses/$id/images/$assetId'
+      path: '/images/$assetId'
+      fullPath: '/api/v1/uses/$id/images/$assetId'
+      preLoaderRoute: typeof ApiV1UsesIdImagesAssetIdRouteImport
+      parentRoute: typeof ApiV1UsesIdRoute
+    }
   }
 }
 
@@ -171,10 +281,37 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface ApiV1UsesIdRouteChildren {
+  ApiV1UsesIdImagesAssetIdRoute: typeof ApiV1UsesIdImagesAssetIdRoute
+}
+
+const ApiV1UsesIdRouteChildren: ApiV1UsesIdRouteChildren = {
+  ApiV1UsesIdImagesAssetIdRoute: ApiV1UsesIdImagesAssetIdRoute,
+}
+
+const ApiV1UsesIdRouteWithChildren = ApiV1UsesIdRoute._addFileChildren(
+  ApiV1UsesIdRouteChildren,
+)
+
+interface ApiV1UsesRouteChildren {
+  ApiV1UsesIdRoute: typeof ApiV1UsesIdRouteWithChildren
+}
+
+const ApiV1UsesRouteChildren: ApiV1UsesRouteChildren = {
+  ApiV1UsesIdRoute: ApiV1UsesIdRouteWithChildren,
+}
+
+const ApiV1UsesRouteWithChildren = ApiV1UsesRoute._addFileChildren(
+  ApiV1UsesRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiImagesAssetIdRoute: ApiImagesAssetIdRoute,
+  ApiV1UsesRoute: ApiV1UsesRouteWithChildren,
+  ApiItemsItemIdImagesRoute: ApiItemsItemIdImagesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

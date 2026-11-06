@@ -2,7 +2,10 @@ import { createFileRoute, Link, notFound, useRouter, useRouterState } from "@tan
 import { useMemo, useState } from "react";
 import { ItemTable, ItemTags, StoragePath } from "src/components/inventory";
 import { ItemForm } from "src/components/item-form";
+import { ItemImages } from "src/components/item-images";
+import { UsesForm } from "src/components/uses-form";
 import { archiveItemAction, getInventory } from "src/functions/inventory";
+import { getItemMedia } from "src/functions/media";
 import { useMutation } from "src/hooks/use-mutation";
 import { createInventoryIndex, itemCode, ownershipLabels, statusLabels, storagePath } from "src/lib/inventory";
 
@@ -11,7 +14,8 @@ export const Route = createFileRoute("/_app/i/$code")({
     const inventory = await getInventory();
     const item = inventory.items.find((entry) => itemCode(entry) === params.code);
     if (!item) throw notFound();
-    return { inventory, item };
+    const media = await getItemMedia({ data: { itemId: item.id } });
+    return { inventory, item, media };
   },
   component: ItemDetail,
   notFoundComponent: () => (
@@ -23,7 +27,7 @@ export const Route = createFileRoute("/_app/i/$code")({
 });
 
 function ItemDetail() {
-  const { inventory: data, item } = Route.useLoaderData();
+  const { inventory: data, item, media } = Route.useLoaderData();
   const inventory = useMemo(() => createInventoryIndex(data), [data]);
   const router = useRouter();
   const navigating = useRouterState({ select: (state) => state.status === "pending" });
@@ -79,7 +83,7 @@ function ItemDetail() {
       {error && <p role="alert">{error}</p>}
       {item.archivedAt === null && (
         <ItemForm
-          key={`${item.id}:${item.version}`}
+          key={`item:${item.id}:${item.version}`}
           item={item}
           inventory={inventory}
           onSaved={async () => {
@@ -89,6 +93,14 @@ function ItemDetail() {
           }}
         />
       )}
+      <ItemImages item={item} assets={media.assets} onChanged={() => router.invalidate({ sync: true })} />
+      <UsesForm
+        key={`uses:${item.id}:${media.entry?.version ?? "new"}`}
+        item={item}
+        assets={media.assets}
+        entry={media.entry}
+        onChanged={() => router.invalidate({ sync: true })}
+      />
       <p>
         <button
           type="button"
