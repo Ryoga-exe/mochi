@@ -1,6 +1,8 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "mochi",
+  "name": "mochi-local",
+  "workers_dev": false,
+  "preview_urls": false,
   "main": "@tanstack/react-start/server-entry",
   "compatibility_date": "2026-11-06",
   "compatibility_flags": ["nodejs_compat"],
@@ -10,10 +12,33 @@
     {
       "binding": "DB",
       "database_name": "mochi",
-      // Replace with the real database ID before deploying.
+      // Local-only placeholder. Set the real ID under env.production.
       "database_id": "00000000-0000-0000-0000-000000000000",
       "migrations_dir": "drizzle"
     }
   ],
-  "r2_buckets": [{ "binding": "ASSETS_BUCKET", "bucket_name": "mochi-assets" }]
+  "r2_buckets": [{ "binding": "ASSETS_BUCKET", "bucket_name": "mochi-assets" }],
+  "env": {
+    "production": {
+      "name": "mochi",
+      "workers_dev": true,
+      "preview_urls": false,
+      "vars": {
+        "PUBLIC_OWNER_NAME": "Ryoga",
+        "BETTER_AUTH_URL": "https://replace-me.invalid"
+      },
+      "secrets": {
+        "required": ["BETTER_AUTH_SECRET", "GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET", "ADMIN_GITHUB_ID"]
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "mochi",
+          "database_id": "00000000-0000-0000-0000-000000000000",
+          "migrations_dir": "drizzle"
+        }
+      ],
+      "r2_buckets": [{ "binding": "ASSETS_BUCKET", "bucket_name": "mochi-assets" }]
+    }
+  }
 }

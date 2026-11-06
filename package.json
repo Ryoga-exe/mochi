@@ -4,7 +4,7 @@
   "type": "module",
   "packageManager": "pnpm@12.15.0",
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=24.0.0"
   },
   "scripts": {
     "dev": "vite --port 3000",
@@ -18,7 +18,11 @@
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "wrangler d1 migrations apply DB --local",
-    "cf:typegen": "wrangler types"
+    "cf:typegen": "wrangler types",
+    "build:production": "node scripts/build-production.ts",
+    "deploy:check": "node scripts/check-deploy.ts",
+    "deploy": "pnpm build:production && pnpm deploy:check && pnpm db:migrate:production && wrangler deploy --config dist/server/wrangler.json",
+    "db:migrate:production": "wrangler d1 migrations apply DB --remote --config wrangler.jsonc --env production"
   },
   "dependencies": {
     "@tanstack/react-router": "^1.170.46",
