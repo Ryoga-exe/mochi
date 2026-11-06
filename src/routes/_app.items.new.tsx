@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useMemo } from "react";
 import { ItemForm } from "src/components/item-form";
 import { getInventory } from "src/functions/inventory";
-import { itemCode } from "src/lib/inventory";
+import { createInventoryIndex, itemCode } from "src/lib/inventory";
 
 export const Route = createFileRoute("/_app/items/new")({
   loader: () => getInventory(),
@@ -9,7 +10,8 @@ export const Route = createFileRoute("/_app/items/new")({
 });
 
 function NewItem() {
-  const inventory = Route.useLoaderData();
+  const data = Route.useLoaderData();
+  const inventory = useMemo(() => createInventoryIndex(data), [data]);
   const navigate = useNavigate();
   return (
     <>

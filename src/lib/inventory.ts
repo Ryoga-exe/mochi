@@ -1,44 +1,25 @@
-export const statusLabels = {
-  available: "通常",
-  lent: "貸出中",
-  lost: "紛失",
-  retired: "管理終了",
-} as const;
+import type { items, locations } from "src/server/db/schema";
 
-export const ownershipLabels = { owned: "自分の物", borrowed: "借りている物" } as const;
+export type { ItemStatus, Ownership } from "./item-attributes";
+export { ownershipLabels, statusLabels } from "./item-attributes";
 
-export type ItemStatus = keyof typeof statusLabels;
-export type Ownership = keyof typeof ownershipLabels;
-
-export type Location = {
-  id: string;
-  name: string;
-  parentId: string | null;
-  version: number;
-  createdAt: number;
-  updatedAt: number;
-};
-
-export type Item = {
-  id: string;
-  number: number;
-  registrationYear: number | null;
-  name: string;
-  description: string;
-  isContainer: boolean;
-  tags: string[];
-  status: ItemStatus;
-  ownership: Ownership;
-  locationId: string | null;
-  containerItemId: string | null;
-  archivedAt: number | null;
-  version: number;
-  createdAt: number;
-  updatedAt: number;
-};
+export type Location = typeof locations.$inferSelect;
+export type Item = typeof items.$inferSelect;
 
 export type StoragePart = { id: string; name: string; kind: "location" | "item"; code?: string };
 export type Inventory = { items: Item[]; locations: Location[] };
+export type InventoryIndex = Inventory & {
+  itemsById: ReadonlyMap<string, Item>;
+  locationsById: ReadonlyMap<string, Location>;
+};
+
+export function createInventoryIndex(inventory: Inventory): InventoryIndex {
+  return {
+    ...inventory,
+    itemsById: new Map(inventory.items.map((item) => [item.id, item])),
+    locationsById: new Map(inventory.locations.map((location) => [location.id, location])),
+  };
+}
 
 export function itemCode(item: Pick<Item, "number" | "registrationYear">) {
   return `M-${item.registrationYear === null ? "" : `${item.registrationYear}-`}${String(item.number).padStart(6, "0")}`;
@@ -48,16 +29,14 @@ export function registrationYearAt(timestamp: number) {
   return Number(new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Tokyo", year: "numeric" }).format(timestamp));
 }
 
-export function storagePath(item: Item, inventory: Inventory): StoragePart[] {
-  const itemMap = new Map(inventory.items.map((entry) => [entry.id, entry]));
-  const locationMap = new Map(inventory.locations.map((entry) => [entry.id, entry]));
+export function storagePath(item: Item, inventory: InventoryIndex): StoragePart[] {
   const parts: StoragePart[] = [];
   const visited = new Set<string>([item.id]);
   let containerId = item.containerItemId;
   let locationId = item.locationId;
 
   while (containerId) {
-    const container = itemMap.get(containerId);
+    const container = inventory.itemsById.get(containerId);
     if (!container || visited.has(container.id)) break;
     visited.add(container.id);
     parts.unshift({ id: container.id, name: container.name, kind: "item", code: itemCode(container) });
@@ -65,7 +44,7 @@ export function storagePath(item: Item, inventory: Inventory): StoragePart[] {
     locationId = container.locationId;
   }
   while (locationId) {
-    const location = locationMap.get(locationId);
+    const location = inventory.locationsById.get(locationId);
     if (!location || visited.has(location.id)) break;
     visited.add(location.id);
     parts.unshift({ id: location.id, name: location.name, kind: "location" });
@@ -74,33 +53,34 @@ export function storagePath(item: Item, inventory: Inventory): StoragePart[] {
   return parts;
 }
 
-export function locationPath(location: Location, locations: Location[]): Location[] {
-  const byId = new Map(locations.map((entry) => [entry.id, entry]));
+export function locationPath(location: Location, inventory: InventoryIndex): Location[] {
   const path: Location[] = [];
   const visited = new Set<string>();
   let current: Location | undefined = location;
   while (current && !visited.has(current.id)) {
     visited.add(current.id);
     path.unshift(current);
-    current = current.parentId ? byId.get(current.parentId) : undefined;
+    current = current.parentId ? inventory.locationsById.get(current.parentId) : undefined;
   }
   return path;
 }
 
-export function storageLabel(item: Item, inventory: Inventory) {
-  const path = storagePath(item, inventory);
+function formatStoragePath(path: StoragePart[]) {
   if (!path.length) return "未設定";
-  const root = inventory.items.find((entry) => entry.id === path[0].id);
-  return `${root ? "（場所未設定） › " : ""}${path.map((part) => part.name).join(" › ")}`;
+  return `${path[0].kind === "item" ? "（場所未設定） › " : ""}${path.map((part) => part.name).join(" › ")}`;
 }
 
-export function containerChoices(inventory: Inventory, itemId?: string) {
+export function storageLabel(item: Item, inventory: InventoryIndex) {
+  return formatStoragePath(storagePath(item, inventory));
+}
+
+export function containerChoices(inventory: InventoryIndex, itemId?: string) {
   return inventory.items.filter(
     (item) =>
       item.archivedAt === null &&
       item.isContainer &&
       item.id !== itemId &&
-      !storagePath(item, inventory).some((part) => part.kind === "item" && part.id === itemId),
+      (!itemId || !storagePath(item, inventory).some((part) => part.kind === "item" && part.id === itemId)),
   );
 }
 
@@ -109,7 +89,7 @@ export function availableTags(inventory: Inventory) {
 }
 
 export function filterItems(
-  inventory: Inventory,
+  inventory: InventoryIndex,
   search: {
     q?: string;
     location?: string;
@@ -134,7 +114,7 @@ export function filterItems(
       return false;
     return (
       !q ||
-      `${itemCode(item)} ${item.name} ${item.description} ${item.tags.join(" ")} ${storageLabel(item, inventory)}`
+      `${itemCode(item)} ${item.name} ${item.description} ${item.tags.join(" ")} ${formatStoragePath(path)}`
         .toLocaleLowerCase()
         .includes(q)
     );

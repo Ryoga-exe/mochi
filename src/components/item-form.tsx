@@ -1,9 +1,10 @@
 import { useHydrated, useRouterState } from "@tanstack/react-router";
-import { type FormEvent, useState } from "react";
+import type { FormEvent } from "react";
 import { saveItemAction } from "src/functions/inventory";
+import { useMutation } from "src/hooks/use-mutation";
 import {
   containerChoices,
-  type Inventory,
+  type InventoryIndex,
   type Item,
   itemCode,
   locationPath,
@@ -18,13 +19,12 @@ export function ItemForm({
   onSaved,
 }: {
   item?: Item;
-  inventory: Inventory;
+  inventory: InventoryIndex;
   onSaved: (item: Item) => Promise<void>;
 }) {
-  const [pending, setPending] = useState(false);
+  const { run, pending, error } = useMutation(saveItemAction);
   const hydrated = useHydrated();
   const navigating = useRouterState({ select: (state) => state.status === "pending" });
-  const [error, setError] = useState("");
   const storage = item?.containerItemId
     ? `item:${item.containerItemId}`
     : item?.locationId
@@ -35,33 +35,21 @@ export function ItemForm({
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     const destination = String(data.get("storage") ?? "");
-    setPending(true);
-    setError("");
-    try {
-      const result = await saveItemAction({
-        data: {
-          id: item?.id ?? null,
-          version: item?.version ?? null,
-          name: data.get("name"),
-          description: data.get("description"),
-          isContainer: data.has("isContainer"),
-          tags: data.get("tags"),
-          status: data.get("status"),
-          ownership: data.get("ownership"),
-          locationId: destination.startsWith("location:") ? destination.slice(9) : null,
-          containerItemId: destination.startsWith("item:") ? destination.slice(5) : null,
-        },
-      });
-      if (!result.ok) {
-        setError(result.message);
-        return;
-      }
-      await onSaved(result.value);
-    } catch {
-      setError("保存できませんでした。ログイン状態と接続を確認してください。");
-    } finally {
-      setPending(false);
-    }
+    await run(
+      {
+        id: item?.id ?? null,
+        version: item?.version ?? null,
+        name: data.get("name"),
+        description: data.get("description"),
+        isContainer: data.has("isContainer"),
+        tags: data.get("tags"),
+        status: data.get("status"),
+        ownership: data.get("ownership"),
+        locationId: destination.startsWith("location:") ? destination.slice(9) : null,
+        containerItemId: destination.startsWith("item:") ? destination.slice(5) : null,
+      },
+      onSaved,
+    );
   }
 
   return (
@@ -111,7 +99,7 @@ export function ItemForm({
               <optgroup label="場所">
                 {inventory.locations.map((location) => (
                   <option key={location.id} value={`location:${location.id}`}>
-                    {locationPath(location, inventory.locations)
+                    {locationPath(location, inventory)
                       .map((entry) => entry.name)
                       .join(" › ")}
                   </option>

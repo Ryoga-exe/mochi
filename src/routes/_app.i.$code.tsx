@@ -1,9 +1,10 @@
 import { createFileRoute, Link, notFound, useRouter, useRouterState } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ItemTable, ItemTags, StoragePath } from "src/components/inventory";
 import { ItemForm } from "src/components/item-form";
 import { archiveItemAction, getInventory } from "src/functions/inventory";
-import { itemCode, ownershipLabels, statusLabels, storagePath } from "src/lib/inventory";
+import { useMutation } from "src/hooks/use-mutation";
+import { createInventoryIndex, itemCode, ownershipLabels, statusLabels, storagePath } from "src/lib/inventory";
 
 export const Route = createFileRoute("/_app/i/$code")({
   loader: async ({ params }) => {
@@ -22,12 +23,12 @@ export const Route = createFileRoute("/_app/i/$code")({
 });
 
 function ItemDetail() {
-  const { inventory, item } = Route.useLoaderData();
+  const { inventory: data, item } = Route.useLoaderData();
+  const inventory = useMemo(() => createInventoryIndex(data), [data]);
   const router = useRouter();
   const navigating = useRouterState({ select: (state) => state.status === "pending" });
-  const [pending, setPending] = useState(false);
+  const { run, pending, error, clearError } = useMutation(archiveItemAction);
   const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
   const directChildren = inventory.items.filter((child) => child.containerItemId === item.id);
   const descendants = inventory.items.filter((child) =>
     storagePath(child, inventory).some((part) => part.kind === "item" && part.id === item.id),
@@ -41,22 +42,11 @@ function ItemDetail() {
       )
     )
       return;
-    setPending(true);
-    setError("");
     setMessage("");
-    try {
-      const result = await archiveItemAction({ data: { id: item.id, version: item.version, archived } });
-      if (!result.ok) {
-        setError(result.message);
-        return;
-      }
-      await router.invalidate();
+    await run({ id: item.id, version: item.version, archived }, async () => {
+      await router.invalidate({ sync: true });
       setMessage(archived ? "アーカイブしました。" : "管理中に戻しました。");
-    } catch {
-      setError("更新できませんでした。ログイン状態と接続を確認してください。");
-    } finally {
-      setPending(false);
-    }
+    });
   }
 
   return (
@@ -93,8 +83,8 @@ function ItemDetail() {
           item={item}
           inventory={inventory}
           onSaved={async () => {
-            setError("");
-            await router.invalidate();
+            clearError();
+            await router.invalidate({ sync: true });
             setMessage("保存しました。");
           }}
         />

@@ -1,6 +1,7 @@
 import {
   availableTags,
   containerChoices,
+  createInventoryIndex,
   filterItems,
   itemCode,
   registrationYearAt,
@@ -30,7 +31,7 @@ test("only explicit, active containers are candidates and server writes enforce 
   const child = await item("収納する充電器");
   const archived = await item("保管終了のバッグ", { isContainer: true });
   await archiveItem(database, { ...archived, archived: true });
-  const choices = containerChoices(await readInventory(database));
+  const choices = containerChoices(createInventoryIndex(await readInventory(database)));
   expect(choices.map((entry) => entry.id)).toContain(bag.id);
   expect(choices.map((entry) => entry.id)).not.toContain(laptop.id);
   expect(choices.map((entry) => entry.id)).not.toContain(archived.id);
@@ -51,7 +52,7 @@ test("an occupied container cannot be disabled and a rejected edit preserves tag
   await expect(saveItem(database, parseItemInput({ ...box, isContainer: false, tags: "変更不可" }))).rejects.toThrow(
     "中身がある間",
   );
-  const unchanged = (await readInventory(database)).items.find((entry) => entry.id === box.id);
+  const unchanged = createInventoryIndex(await readInventory(database)).items.find((entry) => entry.id === box.id);
   expect(unchanged).toMatchObject({ isContainer: true, tags: ["備品"], version: box.version });
   await saveItem(database, parseItemInput({ ...child, containerItemId: null }));
   expect((await saveItem(database, parseItemInput({ ...box, isContainer: false }))).isContainer).toBe(false);
@@ -64,7 +65,7 @@ test("concurrent disabling and insertion cannot leave contents in a non-containe
     item("同時に追加される中身", { containerItemId: box.id }),
   ]);
   expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
-  const inventory = await readInventory(database);
+  const inventory = createInventoryIndex(await readInventory(database));
   const current = inventory.items.find((entry) => entry.id === box.id);
   if (!current?.isContainer) expect(inventory.items.some((entry) => entry.containerItemId === box.id)).toBe(false);
 });
@@ -75,7 +76,7 @@ test("tags can be normalized, deduplicated, filtered with location and searched"
   const charger = await item("タグ付き充電器", { containerItemId: bag.id, tags: " USB-C, 予備、USB-C, ,ガジェット" });
   expect(charger.tags).toEqual(["USB-C", "予備", "ガジェット"]);
   const other = await item("別の場所の物品", { tags: ["USB-C"] });
-  let inventory = await readInventory(database);
+  let inventory = createInventoryIndex(await readInventory(database));
   expect(filterItems(inventory, { tag: "USB-C", location: place.id }).map((entry) => entry.id)).toEqual([charger.id]);
   expect(filterItems(inventory, { q: "usb-c" }).map((entry) => entry.id)).toEqual(
     expect.arrayContaining([charger.id, other.id]),
@@ -84,7 +85,7 @@ test("tags can be normalized, deduplicated, filtered with location and searched"
   expect(filterItems(inventory, { q: itemCode(charger) }).map((entry) => entry.id)).toEqual([charger.id]);
   expect(availableTags(inventory).filter((tag) => tag === "USB-C")).toHaveLength(1);
   await archiveItem(database, { ...charger, archived: true });
-  inventory = await readInventory(database);
+  inventory = createInventoryIndex(await readInventory(database));
   expect(filterItems(inventory, { tag: "USB-C", archived: "archived" }).map((entry) => entry.id)).toEqual([charger.id]);
   expect(filterItems(inventory, { tag: "USB-C" }).map((entry) => entry.id)).toEqual([other.id]);
   const cleared = await saveItem(database, parseItemInput({ ...other, tags: "" }));
@@ -154,7 +155,7 @@ test("migration preserves legacy numbers, locations and contents and enables exi
       .bind(childId, bagId, now, now)
       .run();
     await applyMigrations(db, (name) => name >= "0003");
-    const inventory = await readInventory(db);
+    const inventory = createInventoryIndex(await readInventory(db));
     const bag = inventory.items.find((entry) => entry.id === bagId);
     const child = inventory.items.find((entry) => entry.id === childId);
     expect(bag).toMatchObject({

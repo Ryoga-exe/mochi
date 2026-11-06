@@ -1,4 +1,11 @@
-import { containerChoices, itemCode, locationPath, storageLabel, storagePath } from "src/lib/inventory";
+import {
+  containerChoices,
+  createInventoryIndex,
+  itemCode,
+  locationPath,
+  storageLabel,
+  storagePath,
+} from "src/lib/inventory";
 import { archiveItem, deleteLocation, readInventory, saveItem, saveLocation } from "src/server/inventory";
 import { parseArchiveInput, parseItemInput, parseLocationInput } from "src/server/validation";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
@@ -49,13 +56,13 @@ describe("D1 inventory", () => {
     const bag = await item("バッグ", { locationId: room.id, isContainer: true });
     const pouch = await item("ポーチ", { containerItemId: bag.id, isContainer: true });
     const charger = await item("充電器", { containerItemId: pouch.id, ownership: "borrowed", status: "lent" });
-    let inventory = await readInventory(database);
+    let inventory = createInventoryIndex(await readInventory(database));
     expect(storageLabel(charger, inventory)).toBe("自宅 › 作業部屋 › バッグ › ポーチ");
-    expect(locationPath(room, inventory.locations).map((part) => part.name)).toEqual(["自宅", "作業部屋"]);
+    expect(locationPath(room, inventory).map((part) => part.name)).toEqual(["自宅", "作業部屋"]);
     expect(containerChoices(inventory, bag.id).map((entry) => entry.id)).not.toContain(pouch.id);
     expect(containerChoices(inventory, bag.id).map((entry) => entry.id)).not.toContain(charger.id);
     await saveItem(database, parseItemInput({ ...bag, locationId: lab.id }));
-    inventory = await readInventory(database);
+    inventory = createInventoryIndex(await readInventory(database));
     expect(storageLabel(charger, inventory)).toBe("研究室 › バッグ › ポーチ");
     expect(storagePath(charger, inventory).some((part) => part.id === lab.id)).toBe(true);
     expect(inventory.items.find((entry) => entry.id === charger.id)).toEqual(charger);
@@ -67,11 +74,11 @@ describe("D1 inventory", () => {
     const bag = await item("所在未設定のバッグ", { isContainer: true });
     const pouch = await item("所在未設定のポーチ", { containerItemId: bag.id, isContainer: true });
     const cable = await item("ケーブル", { containerItemId: pouch.id });
-    expect(storageLabel(cable, await readInventory(database))).toBe(
+    expect(storageLabel(cable, createInventoryIndex(await readInventory(database)))).toBe(
       "（場所未設定） › 所在未設定のバッグ › 所在未設定のポーチ",
     );
     const takenOut = await saveItem(database, parseItemInput({ ...cable, containerItemId: null }));
-    expect(storageLabel(takenOut, await readInventory(database))).toBe("未設定");
+    expect(storageLabel(takenOut, createInventoryIndex(await readInventory(database)))).toBe("未設定");
   });
 
   test("rejects item cycles, including concurrent opposing moves", async () => {
@@ -119,7 +126,7 @@ describe("D1 inventory", () => {
     await saveItem(database, parseItemInput({ ...child, containerItemId: null }));
     await archiveItem(database, { ...bag, archived: true });
     await expect(item("追加不可", { containerItemId: bag.id })).rejects.toThrow("アーカイブ済み");
-    expect((await readInventory(database)).items.some((entry) => entry.id === child.id)).toBe(true);
+    expect(createInventoryIndex(await readInventory(database)).items.some((entry) => entry.id === child.id)).toBe(true);
   });
 
   test("protects occupied locations and permits deleting an empty location", async () => {
@@ -131,7 +138,9 @@ describe("D1 inventory", () => {
     await expect(deleteLocation(database, parent)).rejects.toThrow("物品・子の場所");
     await saveItem(database, parseItemInput({ ...object, locationId: null }));
     await deleteLocation(database, parent);
-    expect((await readInventory(database)).locations.some((entry) => entry.id === parent.id)).toBe(false);
+    expect(createInventoryIndex(await readInventory(database)).locations.some((entry) => entry.id === parent.id)).toBe(
+      false,
+    );
   });
 
   test("rejects stale edits and archives rather than overwriting newer data", async () => {

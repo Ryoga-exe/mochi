@@ -1,4 +1,4 @@
-import type { ItemStatus, Ownership } from "src/lib/inventory";
+import { isItemStatus, isOwnership } from "src/lib/item-attributes";
 
 export class InventoryError extends Error {}
 
@@ -57,19 +57,21 @@ export function parseItemInput(value: unknown) {
   const data = object(value);
   const isContainer = data.isContainer ?? false;
   if (typeof isContainer !== "boolean") throw new InventoryError("収納可否の設定が不正です。");
+  const status = data.status ?? "available";
+  const ownership = data.ownership ?? "owned";
+  if (!isItemStatus(status)) throw new InventoryError("状態が不正です。");
+  if (!isOwnership(ownership)) throw new InventoryError("所有関係が不正です。");
   const result = {
     ...identity(data),
     name: text(data.name, "品名", 200),
     description: text(data.description ?? "", "説明", 10000, false),
     isContainer,
     tags: parseTags(data.tags),
-    status: (data.status ?? "available") as ItemStatus,
-    ownership: (data.ownership ?? "owned") as Ownership,
+    status,
+    ownership,
     locationId: id(data.locationId),
     containerItemId: id(data.containerItemId),
   };
-  if (!["available", "lent", "lost", "retired"].includes(result.status)) throw new InventoryError("状態が不正です。");
-  if (!["owned", "borrowed"].includes(result.ownership)) throw new InventoryError("所有関係が不正です。");
   if (result.locationId && result.containerItemId) throw new InventoryError("収納先は一つだけ指定してください。");
   return result;
 }

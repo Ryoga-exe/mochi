@@ -1,8 +1,15 @@
 import { Link } from "@tanstack/react-router";
 import { Fragment } from "react";
-import { type Inventory, type Item, itemCode, ownershipLabels, statusLabels, storagePath } from "src/lib/inventory";
+import {
+  type InventoryIndex,
+  type Item,
+  itemCode,
+  ownershipLabels,
+  statusLabels,
+  storagePath,
+} from "src/lib/inventory";
 
-export function StoragePath({ item, inventory }: { item: Item; inventory: Inventory }) {
+export function StoragePath({ item, inventory }: { item: Item; inventory: InventoryIndex }) {
   const path = storagePath(item, inventory);
   if (!path.length) return <>未設定</>;
   return (
@@ -26,7 +33,7 @@ export function StoragePath({ item, inventory }: { item: Item; inventory: Invent
   );
 }
 
-export function ItemTable({ items, inventory }: { items: Item[]; inventory: Inventory }) {
+export function ItemTable({ items, inventory }: { items: Item[]; inventory: InventoryIndex }) {
   return (
     <table>
       <thead>

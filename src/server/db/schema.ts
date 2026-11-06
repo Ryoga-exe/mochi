@@ -1,5 +1,10 @@
 import { sql } from "drizzle-orm";
 import { type AnySQLiteColumn, check, index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { itemStatuses, ownerships } from "src/lib/item-attributes";
+
+// SQLite CHECK expressions require literals, not bind parameters.
+const sqliteEnum = (values: readonly string[]) =>
+  sql.raw(values.map((value) => `'${value.replaceAll("'", "''")}'`).join(", "));
 
 export const user = sqliteTable("user", {
   id: text("id").primaryKey(),
@@ -93,12 +98,8 @@ export const items = sqliteTable(
     description: text("description").notNull().default(""),
     isContainer: integer("is_container", { mode: "boolean" }).notNull().default(false),
     tags: text("tags", { mode: "json" }).$type<string[]>().notNull().default(sql`'[]'`),
-    status: text("status", { enum: ["available", "lent", "lost", "retired"] })
-      .notNull()
-      .default("available"),
-    ownership: text("ownership", { enum: ["owned", "borrowed"] })
-      .notNull()
-      .default("owned"),
+    status: text("status", { enum: itemStatuses }).notNull().default("available"),
+    ownership: text("ownership", { enum: ownerships }).notNull().default("owned"),
     locationId: text("location_id").references(() => locations.id),
     containerItemId: text("container_item_id").references((): AnySQLiteColumn => items.id),
     archivedAt: integer("archived_at"),
@@ -112,7 +113,7 @@ export const items = sqliteTable(
     index("items_archived_at_idx").on(table.archivedAt),
     check("items_one_storage", sql`${table.locationId} IS NULL OR ${table.containerItemId} IS NULL`),
     check("items_name_required", sql`length(trim(${table.name})) BETWEEN 1 AND 200`),
-    check("items_valid_status", sql`${table.status} IN ('available', 'lent', 'lost', 'retired')`),
-    check("items_valid_ownership", sql`${table.ownership} IN ('owned', 'borrowed')`),
+    check("items_valid_status", sql`${table.status} IN (${sqliteEnum(itemStatuses)})`),
+    check("items_valid_ownership", sql`${table.ownership} IN (${sqliteEnum(ownerships)})`),
   ],
 );

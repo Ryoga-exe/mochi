@@ -1,7 +1,8 @@
 import { createFileRoute, Link, useHydrated, useRouter, useRouterState } from "@tanstack/react-router";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useMemo, useState } from "react";
 import { deleteLocationAction, getInventory, saveLocationAction } from "src/functions/inventory";
-import { type Location, locationPath } from "src/lib/inventory";
+import { useMutation } from "src/hooks/use-mutation";
+import { createInventoryIndex, type Location, locationPath } from "src/lib/inventory";
 
 export const Route = createFileRoute("/_app/locations")({
   loader: () => getInventory(),
@@ -9,68 +10,56 @@ export const Route = createFileRoute("/_app/locations")({
 });
 
 function Locations() {
-  const inventory = Route.useLoaderData();
+  const data = Route.useLoaderData();
+  const inventory = useMemo(() => createInventoryIndex(data), [data]);
   const router = useRouter();
   const hydrated = useHydrated();
   const navigating = useRouterState({ select: (state) => state.status === "pending" });
   const [editing, setEditing] = useState<Location | null>(null);
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState("");
+  const save = useMutation(saveLocationAction);
+  const deletion = useMutation(deleteLocationAction);
+  const pending = save.pending || deletion.pending;
+  const error = save.error || deletion.error;
   const [message, setMessage] = useState("");
   const [formVersion, setFormVersion] = useState(0);
   const parents = inventory.locations.filter(
-    (location) => !locationPath(location, inventory.locations).some((part) => part.id === editing?.id),
+    (location) => !locationPath(location, inventory).some((part) => part.id === editing?.id),
   );
+
+  function clearFeedback() {
+    save.clearError();
+    deletion.clearError();
+    setMessage("");
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    setPending(true);
-    setError("");
-    setMessage("");
-    try {
-      const result = await saveLocationAction({
-        data: {
-          id: editing?.id ?? null,
-          version: editing?.version ?? null,
-          name: data.get("name"),
-          parentId: data.get("parentId") || null,
-        },
-      });
-      if (!result.ok) {
-        setError(result.message);
-        return;
-      }
-      await router.invalidate();
-      setEditing(null);
-      setFormVersion((version) => version + 1);
-      setMessage("保存しました。");
-    } catch {
-      setError("保存できませんでした。ログイン状態と接続を確認してください。");
-    } finally {
-      setPending(false);
-    }
+    clearFeedback();
+    await save.run(
+      {
+        id: editing?.id ?? null,
+        version: editing?.version ?? null,
+        name: data.get("name"),
+        parentId: data.get("parentId") || null,
+      },
+      async () => {
+        await router.invalidate({ sync: true });
+        setEditing(null);
+        setFormVersion((version) => version + 1);
+        setMessage("保存しました。");
+      },
+    );
   }
 
   async function remove(location: Location) {
     if (!window.confirm(`「${location.name}」を削除しますか？`)) return;
-    setPending(true);
-    setError("");
-    setMessage("");
-    try {
-      const result = await deleteLocationAction({ data: { id: location.id, version: location.version } });
-      if (!result.ok) {
-        setError(result.message);
-        return;
-      }
-      await router.invalidate();
+    clearFeedback();
+    await deletion.run({ id: location.id, version: location.version }, async () => {
+      await router.invalidate({ sync: true });
       if (editing?.id === location.id) setEditing(null);
       setMessage("削除しました。");
-    } catch {
-      setError("削除できませんでした。ログイン状態と接続を確認してください。");
-    } finally {
-      setPending(false);
-    }
+    });
   }
 
   return (
@@ -95,7 +84,7 @@ function Locations() {
                 <option value="">なし</option>
                 {parents.map((location) => (
                   <option key={location.id} value={location.id}>
-                    {locationPath(location, inventory.locations)
+                    {locationPath(location, inventory)
                       .map((part) => part.name)
                       .join(" › ")}
                   </option>
@@ -111,7 +100,7 @@ function Locations() {
                 type="button"
                 onClick={() => {
                   setEditing(null);
-                  setError("");
+                  clearFeedback();
                 }}
               >
                 キャンセル
@@ -131,7 +120,7 @@ function Locations() {
           return (
             <li key={location.id}>
               <Link to="/" search={{ location: location.id }}>
-                {locationPath(location, inventory.locations)
+                {locationPath(location, inventory)
                   .map((part) => part.name)
                   .join(" › ")}
               </Link>{" "}
@@ -140,8 +129,7 @@ function Locations() {
                 disabled={pending || navigating}
                 onClick={() => {
                   setEditing(location);
-                  setError("");
-                  setMessage("");
+                  clearFeedback();
                 }}
               >
                 編集

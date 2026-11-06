@@ -17,28 +17,27 @@ function stale(): never {
   throw new InventoryError("他の画面で更新されたか、対象が見つかりません。再読み込みしてやり直してください。");
 }
 
+function causeMessage(error: unknown): string | undefined {
+  if (!error || typeof error !== "object" || !("message" in error) || typeof error.message !== "string") return;
+  return ("cause" in error ? causeMessage(error.cause) : undefined) ?? error.message;
+}
+
 function databaseError(error: unknown): never {
-  const message = error instanceof Error ? `${error.message} ${String(error.cause ?? "")}` : "";
-  if (message.includes("item_cycle") || message.includes("location_cycle")) {
-    throw new InventoryError("自分自身や、自分の配下には移動できません。");
-  }
-  if (message.includes("container_not_empty")) {
-    throw new InventoryError("中身がある物品はアーカイブできません。先に中身を移動してください。");
-  }
-  if (message.includes("container_flag_in_use")) {
-    throw new InventoryError("中身がある間は収納先の設定をオフにできません。先に中身を移動してください。");
-  }
-  if (message.includes("not_a_container")) {
-    throw new InventoryError(
-      "収納先として使える物品を選んでください。入れ物側の「収納先として使う」をオンにできます。",
-    );
-  }
-  if (message.includes("archived_container")) {
-    throw new InventoryError("アーカイブ済みの物品には収納できません。");
-  }
-  if (message.includes("FOREIGN KEY constraint failed")) {
-    throw new InventoryError("収納先が存在しないか、この場所に物品・子の場所が残っています。");
-  }
+  // Drizzle's wrapper includes SQL and parameter values. Only inspect the SQLite cause.
+  const code =
+    causeMessage(error)
+      ?.replace(/^D1_ERROR: /, "")
+      .split(": SQLITE_CONSTRAINT")[0] ?? "";
+  const messages: Record<string, string> = {
+    item_cycle: "自分自身や、自分の配下には移動できません。",
+    location_cycle: "自分自身や、自分の配下には移動できません。",
+    container_not_empty: "中身がある物品はアーカイブできません。先に中身を移動してください。",
+    container_flag_in_use: "中身がある間は収納先の設定をオフにできません。先に中身を移動してください。",
+    not_a_container: "収納先として使える物品を選んでください。入れ物側の「収納先として使う」をオンにできます。",
+    archived_container: "アーカイブ済みの物品には収納できません。",
+    "FOREIGN KEY constraint failed": "収納先が存在しないか、この場所に物品・子の場所が残っています。",
+  };
+  if (Object.hasOwn(messages, code)) throw new InventoryError(messages[code]);
   throw error;
 }
 

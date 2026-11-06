@@ -1,8 +1,9 @@
 import { createFileRoute, Link, type SearchSchemaInput, useNavigate, useRouterState } from "@tanstack/react-router";
-import type { FormEvent } from "react";
+import { type FormEvent, useMemo } from "react";
 import { ItemTable } from "src/components/inventory";
 import { getInventory } from "src/functions/inventory";
-import { availableTags, filterItems, locationPath, statusLabels } from "src/lib/inventory";
+import { availableTags, createInventoryIndex, filterItems, locationPath, statusLabels } from "src/lib/inventory";
+import { isItemStatus } from "src/lib/item-attributes";
 
 export const Route = createFileRoute("/_app/")({
   validateSearch: (
@@ -17,7 +18,7 @@ export const Route = createFileRoute("/_app/")({
     q: typeof search.q === "string" ? search.q.slice(0, 200) : "",
     tag: typeof search.tag === "string" ? search.tag.trim().normalize("NFC").slice(0, 40) : "",
     location: typeof search.location === "string" ? search.location : "",
-    status: typeof search.status === "string" && Object.hasOwn(statusLabels, search.status) ? search.status : "",
+    status: isItemStatus(search.status) ? search.status : "",
     archived: search.archived === "archived" || search.archived === "all" ? search.archived : "active",
   }),
   loader: () => getInventory(),
@@ -25,7 +26,8 @@ export const Route = createFileRoute("/_app/")({
 });
 
 function ItemList() {
-  const inventory = Route.useLoaderData();
+  const data = Route.useLoaderData();
+  const inventory = useMemo(() => createInventoryIndex(data), [data]);
   const search = Route.useSearch();
   const navigate = useNavigate();
   const navigating = useRouterState({ select: (state) => state.status === "pending" });
@@ -86,7 +88,7 @@ function ItemList() {
                 <option value="unset">場所未設定</option>
                 {inventory.locations.map((location) => (
                   <option key={location.id} value={location.id}>
-                    {locationPath(location, inventory.locations)
+                    {locationPath(location, inventory)
                       .map((entry) => entry.name)
                       .join(" › ")}
                   </option>
