@@ -22,7 +22,7 @@ export function createInventoryIndex(inventory: Inventory): InventoryIndex {
 }
 
 export function itemCode(item: Pick<Item, "number" | "registrationYear">) {
-  return `M-${item.registrationYear === null ? "" : `${item.registrationYear}-`}${String(item.number).padStart(6, "0")}`;
+  return `M-${item.registrationYear}-${String(item.number).padStart(6, "0")}`;
 }
 
 export function registrationYearAt(timestamp: number) {

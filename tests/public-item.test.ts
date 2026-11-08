@@ -1,11 +1,11 @@
 import { itemCode } from "src/lib/inventory";
 import { parseItemCode } from "src/lib/public-item";
-import { archiveItem, readInventory, saveItem } from "src/server/inventory";
+import { archiveItem, saveItem } from "src/server/inventory";
 import { readPublicItem } from "src/server/public-item";
 import { publicUse, saveUsesEntry, unpublishUse } from "src/server/uses";
 import { itemInputSchema, usesInputSchema } from "src/server/validation";
 import { afterAll, beforeAll, expect, test } from "vitest";
-import { applyMigrations, testDatabase } from "./database";
+import { testDatabase } from "./database";
 
 let proxy: Awaited<ReturnType<typeof testDatabase>>;
 beforeAll(async () => {
@@ -126,35 +126,8 @@ test("accepts only canonical codes with the actual registration year", async () 
   ]) {
     expect(await readPublicItem(proxy.env.DB, candidate, "Ryoga")).toBeNull();
   }
-  expect(parseItemCode("M-000001")).toEqual({ number: 1, registrationYear: null });
+  expect(parseItemCode("M-000001")).toBeNull();
   expect(parseItemCode("M-2026-1000000")).toEqual({ number: 1000000, registrationYear: 2026 });
-});
-
-test("migration preserves existing inventory and leaves every old item private", async () => {
-  const legacy = await testDatabase((name) => name < "0007");
-  try {
-    const id = crypto.randomUUID();
-    const now = Date.now();
-    await legacy.env.DB.prepare(
-      "INSERT INTO items (id, name, description, created_at, updated_at) VALUES (?, 'Legacy', 'PRIVATE LEGACY MEMO', ?, ?)",
-    )
-      .bind(id, now, now)
-      .run();
-    await applyMigrations(legacy.env.DB, (name) => name >= "0007");
-    const { items } = await readInventory(legacy.env.DB);
-    expect(items[0]).toMatchObject({
-      id,
-      name: "Legacy",
-      description: "PRIVATE LEGACY MEMO",
-      isPublic: false,
-      publicDescription: "",
-    });
-    expect(await readPublicItem(legacy.env.DB, itemCode(items[0]), "Ryoga")).toBeNull();
-    const published = await saveItem(legacy.env.DB, itemInputSchema.parse({ ...items[0], isPublic: true }));
-    expect(await readPublicItem(legacy.env.DB, itemCode(published), "Ryoga")).toMatchObject({ name: "Legacy" });
-  } finally {
-    await legacy.dispose();
-  }
 });
 
 test("rejects invalid publication flags and oversized short descriptions", () => {

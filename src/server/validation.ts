@@ -11,8 +11,9 @@ function textInput(label: string, max: number, { required = true, trim = true } 
 
 export const idSchema = z.guid({ error: "対象の ID が不正です。" });
 const optionalIdSchema = z
-  .preprocess((value) => (value === "" ? null : value), idSchema.nullish())
-  .transform((value) => value ?? null);
+  .union([idSchema, z.literal("")], { error: "対象の ID が不正です。" })
+  .nullish()
+  .transform((value) => value || null);
 const versionSchema = z
   .int({ error: "更新情報が不正です。ページを再読み込みしてください。" })
   .min(1, "更新情報が不正です。ページを再読み込みしてください。");
@@ -69,11 +70,13 @@ export const itemInputSchema = identitySchema
       .transform((value) => value ?? ""),
     tags: tagsSchema,
     status: z
-      .enum(itemStatuses, { error: "状態が不正です。" })
+      .string({ error: "状態が不正です。" })
+      .pipe(z.enum(itemStatuses, { error: "状態が不正です。" }))
       .nullish()
       .transform((value) => value ?? "available"),
     ownership: z
-      .enum(ownerships, { error: "所有関係が不正です。" })
+      .string({ error: "所有関係が不正です。" })
+      .pipe(z.enum(ownerships, { error: "所有関係が不正です。" }))
       .nullish()
       .transform((value) => value ?? "owned"),
     locationId: optionalIdSchema,

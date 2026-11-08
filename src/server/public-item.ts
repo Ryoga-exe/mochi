@@ -17,9 +17,7 @@ export async function readPublicItem(
     .where(
       and(
         eq(items.number, identity.number),
-        identity.registrationYear === null
-          ? isNull(items.registrationYear)
-          : eq(items.registrationYear, identity.registrationYear),
+        eq(items.registrationYear, identity.registrationYear),
         eq(items.isPublic, true),
         isNull(items.archivedAt),
       ),

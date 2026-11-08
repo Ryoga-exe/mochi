@@ -1,20 +1,11 @@
-import { readdir, readFile } from "node:fs/promises";
+import { migrate } from "drizzle-orm/d1/migrator";
+import { getDb } from "src/server/db";
 import { getPlatformProxy } from "wrangler";
 
-export async function applyMigrations(database: D1Database, include: (name: string) => boolean = () => true) {
-  const files = (await readdir("drizzle")).filter((name) => name.endsWith(".sql") && include(name)).sort();
-  for (const file of files) {
-    const source = await readFile(`drizzle/${file}`, "utf8");
-    for (const statement of source.split("--> statement-breakpoint").filter((sql) => sql.trim())) {
-      await database.prepare(statement).run();
-    }
-  }
-}
-
-export async function testDatabase(include?: (name: string) => boolean) {
+export async function testDatabase() {
   const proxy = await getPlatformProxy<Cloudflare.Env>({ configPath: "wrangler.jsonc", persist: false });
   try {
-    await applyMigrations(proxy.env.DB, include);
+    await migrate(getDb(proxy.env.DB), { migrationsFolder: "drizzle" });
     return proxy;
   } catch (error) {
     await proxy.dispose();

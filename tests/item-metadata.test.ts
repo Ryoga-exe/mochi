@@ -5,13 +5,12 @@ import {
   filterItems,
   itemCode,
   registrationYearAt,
-  storageLabel,
 } from "src/lib/inventory";
 import { archiveItem, readInventory, saveItem, saveLocation } from "src/server/inventory";
 import { mutation } from "src/server/mutation";
 import { itemInputSchema, locationInputSchema } from "src/server/validation";
 import { afterAll, beforeAll, expect, test } from "vitest";
-import { applyMigrations, testDatabase } from "./database";
+import { testDatabase } from "./database";
 
 let proxy: Awaited<ReturnType<typeof testDatabase>>;
 let database: D1Database;
@@ -123,7 +122,6 @@ test("registration years are issued once and codes remain stable through edits a
 test("registration years follow the new year in Japan rather than UTC", () => {
   expect(registrationYearAt(Date.parse("2026-12-31T14:59:59.999Z"))).toBe(2026);
   expect(registrationYearAt(Date.parse("2026-12-31T15:00:00.000Z"))).toBe(2027);
-  expect(itemCode({ number: 1, registrationYear: null })).toBe("M-000001");
   expect(itemCode({ number: 1, registrationYear: 2026 })).toBe("M-2026-000001");
 });
 
@@ -139,59 +137,5 @@ test("invalid flags and tags are rejected before persistence", () => {
     Array.from({ length: 21 }, (_, index) => `tag${index}`),
   ]) {
     expect(() => itemInputSchema.parse({ name: "物品", tags })).toThrow();
-  }
-});
-
-test("migration preserves legacy numbers, locations and contents and enables existing containers", async () => {
-  const legacy = await testDatabase((name) => name < "0003");
-  try {
-    const db = legacy.env.DB;
-    const placeId = crypto.randomUUID();
-    const bagId = crypto.randomUUID();
-    const childId = crypto.randomUUID();
-    const now = Date.now();
-    await db
-      .prepare("INSERT INTO locations(id, name, created_at, updated_at) VALUES (?, '移行前の自宅', ?, ?)")
-      .bind(placeId, now, now)
-      .run();
-    await db
-      .prepare(
-        "INSERT INTO items(number, id, name, location_id, created_at, updated_at) VALUES (101, ?, '移行前のバッグ', ?, ?, ?)",
-      )
-      .bind(bagId, placeId, now, now)
-      .run();
-    await db
-      .prepare(
-        "INSERT INTO items(number, id, name, container_item_id, created_at, updated_at) VALUES (102, ?, '移行前の中身', ?, ?, ?)",
-      )
-      .bind(childId, bagId, now, now)
-      .run();
-    await applyMigrations(db, (name) => name >= "0003");
-    const inventory = createInventoryIndex(await readInventory(db));
-    const bag = inventory.items.find((entry) => entry.id === bagId);
-    const child = inventory.items.find((entry) => entry.id === childId);
-    expect(bag).toMatchObject({
-      number: 101,
-      registrationYear: null,
-      isContainer: true,
-      tags: [],
-      locationId: placeId,
-    });
-    expect(child).toMatchObject({
-      number: 102,
-      registrationYear: null,
-      isContainer: false,
-      tags: [],
-      containerItemId: bagId,
-    });
-    if (!bag || !child) throw new Error("Legacy data missing");
-    expect(itemCode(bag)).toBe("M-000101");
-    expect(storageLabel(child, inventory)).toBe("移行前の自宅 › 移行前のバッグ");
-    expect(itemCode(await saveItem(db, itemInputSchema.parse({ ...bag, tags: "既存" })))).toBe("M-000101");
-    const added = await saveItem(db, itemInputSchema.parse({ name: "移行後に登録" }));
-    expect(added.number).toBe(103);
-    expect(added.registrationYear).toBe(registrationYearAt(added.createdAt));
-  } finally {
-    await legacy.dispose();
   }
 });

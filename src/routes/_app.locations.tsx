@@ -40,8 +40,8 @@ function Locations() {
       {
         id: editing?.id ?? null,
         version: editing?.version ?? null,
-        name: data.get("name"),
-        parentId: data.get("parentId") || null,
+        name: String(data.get("name") ?? ""),
+        parentId: String(data.get("parentId") ?? "") || null,
       },
       async () => {
         await router.invalidate({ sync: true });

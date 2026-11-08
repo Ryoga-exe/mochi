@@ -94,7 +94,7 @@ export const items = sqliteTable(
   {
     number: integer("number").primaryKey({ autoIncrement: true }),
     id: text("id").notNull().unique(),
-    registrationYear: integer("registration_year"),
+    registrationYear: integer("registration_year").notNull(),
     name: text("name").notNull(),
     description: text("description").notNull().default(""),
     isPublic: integer("is_public", { mode: "boolean" }).notNull().default(false),

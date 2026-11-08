@@ -5,57 +5,8 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1793965517281,
-      "tag": "0000_cheerful_ricochet",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1793972913519,
-      "tag": "0001_shocking_sentinels",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1793972913755,
-      "tag": "0002_storage-constraints",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1793974817032,
-      "tag": "0003_item-metadata",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "6",
-      "when": 1793974817271,
-      "tag": "0004_container-rules",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "6",
-      "when": 1793978459538,
-      "tag": "0005_images-and-uses",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "6",
-      "when": 1793978459779,
-      "tag": "0006_media-publication-rules",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "6",
-      "when": 1793979750910,
-      "tag": "0007_item-visibility",
+      "when": 1794106772005,
+      "tag": "0000_init",
       "breakpoints": true
     }
   ]
