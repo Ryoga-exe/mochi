@@ -9,7 +9,7 @@ import { privateImageResponse, uploadImageResponse } from "src/server/media-http
 import { itemInputSchema } from "src/server/validation";
 import { afterAll, beforeAll, expect, test } from "vitest";
 import { testDatabase } from "./database";
-import { png } from "./images";
+import { jpeg, jpegSegment, png } from "./images";
 
 let proxy: Awaited<ReturnType<typeof testDatabase>>;
 let env: MediaEnv & AuthEnv;
@@ -121,6 +121,20 @@ test("rejects malformed multipart, spoofed file types and oversized bodies", asy
     ).status,
   ).toBe(413);
   expect((await readItemMedia(env.DB, itemId)).assets).toHaveLength(0);
+});
+
+test("rejects unsafe JPEG metadata and PNGs without pixels before writing to D1 or R2", async () => {
+  const comment = jpegSegment(0xfe, Buffer.from("private location"));
+  for (const bytes of [
+    Buffer.concat([jpeg.subarray(0, -2), comment, jpeg.subarray(-2)]),
+    Buffer.concat([png.subarray(0, 33), png.subarray(-12)]),
+  ]) {
+    const response = await upload(form(bytes));
+    expect(response.status).toBe(400);
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+    expect((await readItemMedia(env.DB, itemId)).assets).toHaveLength(0);
+    expect((await env.ASSETS_BUCKET.list()).objects).toHaveLength(0);
+  }
 });
 
 test("bounds streaming bodies without a Content-Length header", async () => {
