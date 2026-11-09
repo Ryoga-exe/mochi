@@ -43,61 +43,66 @@ export function ItemImages({
       <h3>
         画像（{assets.length} / {MAX_IMAGES_PER_ITEM} 枚）
       </h3>
-      <p>
-        追加した画像は uses API
-        の公開対象には自動で追加されません。長辺2000px以下に縮小し、位置情報などのメタデータを除いて保存します。
-      </p>
-      <form method="post" onSubmit={submit}>
-        <fieldset disabled={disabled || item.archivedAt !== null || assets.length >= MAX_IMAGES_PER_ITEM}>
-          <legend>画像を追加</legend>
-          <p>
-            <label>
-              ファイルを選択{" "}
-              <input type="file" name="files" accept="image/jpeg,image/png,image/webp" multiple required />
-            </label>
-          </p>
-          <button type="submit">{upload.pending ? "追加中…" : "アップロード"}</button>
-        </fieldset>
-      </form>
-      <form method="post" onSubmit={submit}>
-        <fieldset disabled={disabled || item.archivedAt !== null || assets.length >= MAX_IMAGES_PER_ITEM}>
-          <legend>カメラから追加</legend>
-          <p>
-            <label>
-              写真を撮影 <input type="file" name="files" accept="image/*" capture="environment" required />
-            </label>
-          </p>
-          <button type="submit">撮影した写真を追加</button>
-        </fieldset>
-      </form>
-      <p>元画像は1枚20MBまで。カメラの起動はブラウザー・端末の対応状況によります。</p>
+      <details open={assets.length === 0}>
+        <summary>画像を追加・撮影する</summary>
+        <p>
+          追加した画像は uses API
+          の公開対象には自動で追加されません。長辺2000px以下に縮小し、位置情報などのメタデータを除いて保存します。
+        </p>
+        <form method="post" onSubmit={submit}>
+          <fieldset disabled={disabled || item.archivedAt !== null || assets.length >= MAX_IMAGES_PER_ITEM}>
+            <legend>画像を追加</legend>
+            <p>
+              <label>
+                ファイルを選択{" "}
+                <input type="file" name="files" accept="image/jpeg,image/png,image/webp" multiple required />
+              </label>
+            </p>
+            <button type="submit">{upload.pending ? "追加中…" : "アップロード"}</button>
+          </fieldset>
+        </form>
+        <form method="post" onSubmit={submit}>
+          <fieldset disabled={disabled || item.archivedAt !== null || assets.length >= MAX_IMAGES_PER_ITEM}>
+            <legend>カメラから追加</legend>
+            <p>
+              <label>
+                写真を撮影 <input type="file" name="files" accept="image/*" capture="environment" required />
+              </label>
+            </p>
+            <button type="submit">撮影した写真を追加</button>
+          </fieldset>
+        </form>
+        <p>元画像は1枚20MBまで。カメラの起動はブラウザー・端末の対応状況によります。</p>
+      </details>
       {message && <p role="status">{message}</p>}
       {[...new Set([upload.error, deletion.error, ...failures].filter(Boolean))].map((error) => (
         <p role="alert" key={error}>
           {error}
         </p>
       ))}
-      {assets.map((asset) => (
-        <figure key={asset.id}>
-          {asset.state === "ready" ? (
-            <img src={privateImageUrl(asset.id)} alt={asset.filename} width={200} loading="lazy" />
-          ) : (
-            <p>処理が完了していません。削除して再度追加できます。</p>
-          )}
-          <figcaption>
-            {asset.filename}（{asset.width} × {asset.height}）
-          </figcaption>
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={async () => {
-              if (window.confirm("この画像を削除しますか？")) await deletion.run({ assetId: asset.id }, onChanged);
-            }}
-          >
-            削除
-          </button>
-        </figure>
-      ))}
+      <div className="image-grid">
+        {assets.map((asset) => (
+          <figure key={asset.id}>
+            {asset.state === "ready" ? (
+              <img src={privateImageUrl(asset.id)} alt={asset.filename} width={200} loading="lazy" />
+            ) : (
+              <p>処理が完了していません。削除して再度追加できます。</p>
+            )}
+            <figcaption>
+              {asset.filename}（{asset.width} × {asset.height}）
+            </figcaption>
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={async () => {
+                if (window.confirm("この画像を削除しますか？")) await deletion.run({ assetId: asset.id }, onChanged);
+              }}
+            >
+              削除
+            </button>
+          </figure>
+        ))}
+      </div>
     </section>
   );
 }

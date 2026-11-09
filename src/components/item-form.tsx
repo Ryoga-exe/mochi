@@ -1,5 +1,5 @@
 import { useHydrated, useRouterState } from "@tanstack/react-router";
-import type { FormEvent } from "react";
+import { type FormEvent, useEffect, useRef } from "react";
 import { saveItemAction } from "src/functions/inventory";
 import { useMutation } from "src/hooks/use-mutation";
 import {
@@ -18,14 +18,24 @@ export function ItemForm({
   item,
   inventory,
   onSaved,
+  onCancel,
 }: {
   item?: Item;
   inventory: InventoryIndex;
   onSaved: (item: Item) => Promise<void>;
+  onCancel?: () => void;
 }) {
   const { run, pending, error } = useMutation(saveItemAction);
   const hydrated = useHydrated();
   const navigating = useRouterState({ select: (state) => state.status === "pending" });
+  const nameField = useRef<HTMLInputElement>(null);
+  const editing = Boolean(item);
+  const hasDetails = Boolean(
+    item && (item.description || item.tags.length || item.status !== "available" || item.ownership !== "owned"),
+  );
+  useEffect(() => {
+    if (editing) nameField.current?.focus();
+  }, [editing]);
   const storage = item?.containerItemId
     ? `item:${item.containerItemId}`
     : item?.locationId
@@ -63,36 +73,9 @@ export function ItemForm({
           <label>
             品名（必須）
             <br />
-            <input name="name" required maxLength={200} defaultValue={item?.name ?? ""} />
+            <input ref={nameField} name="name" required maxLength={200} defaultValue={item?.name ?? ""} />
           </label>
         </p>
-        <p>
-          <label>
-            説明・メモ
-            <br />
-            <textarea name="description" rows={6} cols={50} maxLength={10000} defaultValue={item?.description ?? ""} />
-          </label>
-        </p>
-        <p>
-          <label>
-            <input type="checkbox" name="isContainer" defaultChecked={item?.isContainer ?? false} />
-            この物品を収納先として使う（バッグ・箱など）
-          </label>
-        </p>
-        <p>収納先の候補には、この設定をオンにした物品だけが表示されます。中身がある間はオフにできません。</p>
-        <p>
-          <label>
-            タグ（カンマ区切り）
-            <br />
-            <input
-              name="tags"
-              maxLength={1000}
-              placeholder="ガジェット, USB-C, 予備"
-              defaultValue={item?.tags.join(", ") ?? ""}
-            />
-          </label>
-        </p>
-        <p>タグは1つ40文字、20個まで設定できます。</p>
         <p>
           <label>
             収納先
@@ -120,32 +103,68 @@ export function ItemForm({
         </p>
         <p>
           <label>
-            状態
-            <br />
-            <select name="status" defaultValue={item?.status ?? "available"}>
-              {Object.entries(statusLabels).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
+            <input type="checkbox" name="isContainer" defaultChecked={item?.isContainer ?? false} />
+            ほかの物品を収納できる
           </label>
         </p>
-        <p>
-          <label>
-            所有関係
-            <br />
-            <select name="ownership" defaultValue={item?.ownership ?? "owned"}>
-              {Object.entries(ownershipLabels).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-        </p>
-        <fieldset>
-          <legend>QR ページの公開範囲</legend>
+        <p>バッグや箱など。中身がある間はオフにできません。</p>
+        <details open={hasDetails}>
+          <summary>メモ・タグ・状態など</summary>
+          <p>
+            <label>
+              説明・メモ
+              <br />
+              <textarea
+                name="description"
+                rows={6}
+                cols={50}
+                maxLength={10000}
+                defaultValue={item?.description ?? ""}
+              />
+            </label>
+          </p>
+          <p>
+            <label>
+              タグ（カンマ区切り）
+              <br />
+              <input
+                name="tags"
+                maxLength={1000}
+                placeholder="ガジェット, USB-C, 予備"
+                defaultValue={item?.tags.join(", ") ?? ""}
+              />
+            </label>
+          </p>
+          <p>タグは1つ40文字、20個まで設定できます。</p>
+          <p>
+            <label>
+              状態
+              <br />
+              <select name="status" defaultValue={item?.status ?? "available"}>
+                {Object.entries(statusLabels).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </p>
+          <p>
+            <label>
+              所有関係
+              <br />
+              <select name="ownership" defaultValue={item?.ownership ?? "owned"}>
+                {Object.entries(ownershipLabels).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </p>
+        </details>
+        <details>
+          <summary>QR ページの公開設定</summary>
           <p>
             <label>
               <input type="checkbox" name="isPublic" defaultChecked={item?.isPublic ?? false} />
@@ -170,10 +189,17 @@ export function ItemForm({
             </label>
           </p>
           <p>{MAX_PUBLIC_DESCRIPTION_LENGTH}文字まで。管理メモからは自動転記しません。</p>
-        </fieldset>
-        <button type="submit">{pending ? "保存中…" : "保存"}</button>
+        </details>
+        {error && <p role="alert">{error}</p>}
+        <div className="actions">
+          <button type="submit">{pending ? "保存中…" : item ? "変更を保存" : "登録して詳細へ"}</button>
+          {onCancel && (
+            <button type="button" onClick={onCancel}>
+              キャンセル
+            </button>
+          )}
+        </div>
       </fieldset>
-      {error && <p role="alert">{error}</p>}
     </form>
   );
 }

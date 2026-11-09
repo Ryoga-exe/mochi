@@ -1,0 +1,321 @@
+:root {
+  font-family: system-ui, sans-serif;
+  line-height: 1.65;
+  color: #1f2937;
+  background: #fafafa;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  max-width: 76rem;
+  margin: 0 auto;
+  padding: 1rem clamp(1rem, 4vw, 2rem) 3rem;
+}
+
+a {
+  color: #245a91;
+  text-underline-offset: 0.2em;
+}
+
+:focus-visible {
+  outline: 3px solid #245a91;
+  outline-offset: 3px;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid #9ca3af;
+  border-radius: 0.3rem;
+  color: inherit;
+  background: white;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+button[type="submit"],
+.button {
+  color: white;
+  background: #273749;
+  border-color: #273749;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+fieldset {
+  min-inline-size: 0;
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.4rem;
+}
+
+label {
+  display: block;
+  font-weight: 500;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.5rem;
+  border: 1px solid #9ca3af;
+  border-radius: 0.25rem;
+  color: inherit;
+  background: white;
+}
+
+input,
+select {
+  min-height: 2.75rem;
+}
+
+textarea {
+  display: block;
+  resize: vertical;
+}
+
+input[type="checkbox"] {
+  flex: none;
+  width: 1.1rem;
+  min-height: 1.1rem;
+  margin: 0.3rem 0 0;
+  accent-color: #273749;
+}
+
+label:has(> input[type="checkbox"]) {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  min-height: 2.75rem;
+  font-weight: normal;
+}
+
+details {
+  margin: 1rem 0;
+  padding: 0.8rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.4rem;
+}
+
+summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+details[open] > summary {
+  margin-bottom: 0.75rem;
+}
+
+dl {
+  display: grid;
+  grid-template-columns: minmax(8rem, 10rem) minmax(0, 1fr);
+  gap: 0.5rem 1rem;
+}
+
+dt {
+  color: #4b5563;
+}
+
+dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+img,
+pre {
+  max-width: 100%;
+}
+
+img {
+  height: auto;
+}
+
+pre {
+  overflow-x: auto;
+}
+
+figure {
+  min-width: 0;
+  margin: 1rem 0;
+}
+
+figcaption {
+  overflow-wrap: anywhere;
+}
+
+[role="alert"],
+[role="status"] {
+  padding: 0.7rem 1rem;
+  border-left: 3px solid #245a91;
+  background: #eef4f9;
+}
+
+[role="alert"] {
+  border-color: #a52a2a;
+  background: #fff1f1;
+}
+
+.app-header,
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+}
+
+.app-header {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #d1d5db;
+}
+
+.app-header h1,
+.app-header p {
+  margin: 0;
+}
+
+.app-header h1 {
+  font-size: 1.3rem;
+}
+
+.app-header nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+}
+
+.app-header nav a {
+  padding: 0.5rem 0;
+}
+
+.app-header nav a[aria-current="page"] {
+  font-weight: 700;
+}
+
+.app-header p {
+  margin-left: auto;
+}
+
+.page-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.page-heading h2 {
+  margin: 0.5rem 0;
+  overflow-wrap: anywhere;
+}
+
+.filter-search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 0.75rem;
+}
+
+.filter-grid,
+.image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: 1rem;
+}
+
+.filter-grid p {
+  margin: 0;
+}
+
+.table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid #d1d5db;
+  border-radius: 0.4rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+th,
+td {
+  padding: 0.75rem 1rem;
+  vertical-align: top;
+  border-bottom: 1px solid #d1d5db;
+}
+
+th {
+  white-space: nowrap;
+  background: #f0f2f4;
+}
+
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.item-name {
+  min-width: 13rem;
+  font-weight: 600;
+}
+
+.item-name small {
+  display: block;
+  color: #4b5563;
+  font-weight: normal;
+  font-family: ui-monospace, monospace;
+}
+
+.item-description {
+  white-space: pre-wrap;
+}
+
+.skip-link {
+  position: absolute;
+  top: 0.5rem;
+  left: 1rem;
+  transform: translateY(-200%);
+  padding: 0.5rem 1rem;
+  background: white;
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
+@media (max-width: 40rem) {
+  dl {
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+    gap: 0.5rem 0.75rem;
+  }
+
+  .app-header nav {
+    order: 1;
+    width: 100%;
+  }
+}

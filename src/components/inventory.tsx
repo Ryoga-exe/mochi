@@ -35,46 +35,43 @@ export function StoragePath({ item, inventory }: { item: Item; inventory: Invent
 
 export function ItemTable({ items, inventory }: { items: Item[]; inventory: InventoryIndex }) {
   return (
-    <table>
-      <thead>
-        <tr>
-          <th>管理番号</th>
-          <th>品名</th>
-          <th>タグ</th>
-          <th>収納先</th>
-          <th>状態</th>
-          <th>所有関係</th>
-          <th>QR 公開</th>
-        </tr>
-      </thead>
-      <tbody>
-        {items.map((item) => (
-          <tr key={item.id}>
-            <td>
-              <Link to="/items/$code" params={{ code: itemCode(item) }}>
-                {itemCode(item)}
-              </Link>
-            </td>
-            <td>
-              <Link to="/items/$code" params={{ code: itemCode(item) }}>
-                {item.name}
-              </Link>
-              {item.isContainer && "（収納可）"}
-              {item.archivedAt !== null && "（アーカイブ済み）"}
-            </td>
-            <td>
-              <ItemTags item={item} />
-            </td>
-            <td>
-              <StoragePath item={item} inventory={inventory} />
-            </td>
-            <td>{statusLabels[item.status]}</td>
-            <td>{ownershipLabels[item.ownership]}</td>
-            <td>{item.isPublic && item.archivedAt === null ? "公開" : "非公開"}</td>
+    <section className="table-scroll" aria-label="物品一覧（横にスクロールできます）">
+      <table>
+        <thead>
+          <tr>
+            <th>品名</th>
+            <th>タグ</th>
+            <th>収納先</th>
+            <th>状態</th>
+            <th>所有関係</th>
+            <th>QR 公開</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {items.map((item) => (
+            <tr key={item.id}>
+              <td className="item-name">
+                <Link to="/items/$code" params={{ code: itemCode(item) }}>
+                  {item.name}
+                </Link>
+                <small>{itemCode(item)}</small>
+                {item.isContainer && "（収納可）"}
+                {item.archivedAt !== null && "（アーカイブ済み）"}
+              </td>
+              <td>
+                <ItemTags item={item} />
+              </td>
+              <td>
+                <StoragePath item={item} inventory={inventory} />
+              </td>
+              <td>{statusLabels[item.status]}</td>
+              <td>{ownershipLabels[item.ownership]}</td>
+              <td>{item.isPublic && item.archivedAt === null ? "公開" : "非公開"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
   );
 }
 

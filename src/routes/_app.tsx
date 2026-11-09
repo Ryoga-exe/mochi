@@ -34,15 +34,18 @@ function App() {
 
   return (
     <>
-      <header>
+      <a className="skip-link" href="#main-content">
+        本文へ移動
+      </a>
+      <header className="app-header">
         <h1>
           <Link to="/">mochi</Link>
         </h1>
         <nav aria-label="メイン">
-          <Link to="/">物品一覧</Link>
-          {" | "}
+          <Link to="/" activeOptions={{ exact: true }}>
+            物品一覧
+          </Link>
           <Link to="/items/new">物品を登録</Link>
-          {" | "}
           <Link to="/locations">場所を管理</Link>
         </nav>
         <p>
@@ -53,7 +56,7 @@ function App() {
         </p>
         {error && <p role="alert">{error}</p>}
       </header>
-      <main aria-busy={navigating}>
+      <main id="main-content" tabIndex={-1} aria-busy={navigating}>
         <Outlet />
       </main>
     </>
