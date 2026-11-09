@@ -1,8 +1,10 @@
+import { Alert, Button, Text, Title } from "@mantine/core";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { getViewer } from "src/functions/inventory";
 import { authClient } from "src/lib/auth-client";
 import { parseItemCode } from "src/lib/public-item";
+import classes from "src/styles/layout.module.css";
 import { z } from "zod";
 
 export const Route = createFileRoute("/login")({
@@ -44,16 +46,16 @@ function Login() {
   }
 
   return (
-    <main>
-      <h1>mochi</h1>
-      <p>持ち物と、その居場所を管理する。</p>
-      <p>管理者の GitHub アカウントでログインしてください。</p>
+    <main className={classes.standalone}>
+      <Title order={1}>mochi</Title>
+      <Text>持ち物と、その居場所を管理する。</Text>
+      <Text>管理者の GitHub アカウントでログインしてください。</Text>
       {(error || search.error) && (
-        <p role="alert">{error || "ログインできませんでした。許可されたアカウントか確認してください。"}</p>
+        <Alert color="red">{error || "ログインできませんでした。許可されたアカウントか確認してください。"}</Alert>
       )}
-      <button type="button" onClick={signIn} disabled={pending}>
+      <Button type="button" onClick={signIn} loading={pending}>
         {pending ? "GitHub に移動しています…" : "GitHub でログイン"}
-      </button>
+      </Button>
     </main>
   );
 }

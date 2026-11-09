@@ -1,3 +1,5 @@
+import { Alert, Anchor, Badge, Button, Text, Title } from "@mantine/core";
+import { modals } from "@mantine/modals";
 import { createFileRoute, Link, notFound, useRouter, useRouterState } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import { ItemTable, ItemTags, StoragePath } from "src/components/inventory";
@@ -8,6 +10,7 @@ import { archiveItemAction, getInventory } from "src/functions/inventory";
 import { getItemMedia } from "src/functions/media";
 import { useMutation } from "src/hooks/use-mutation";
 import { createInventoryIndex, itemCode, ownershipLabels, statusLabels, storagePath } from "src/lib/inventory";
+import classes from "src/styles/layout.module.css";
 
 export const Route = createFileRoute("/_app/items/$code")({
   remountDeps: ({ params }) => params.code,
@@ -21,8 +24,8 @@ export const Route = createFileRoute("/_app/items/$code")({
   component: ItemDetail,
   notFoundComponent: () => (
     <>
-      <h2>物品が見つかりません。</h2>
-      <Link to="/">物品一覧に戻る</Link>
+      <Title order={2}>物品が見つかりません。</Title>
+      <Anchor renderRoot={(props) => <Link {...props} to="/" />}>物品一覧に戻る</Anchor>
     </>
   ),
 });
@@ -41,31 +44,34 @@ function ItemDetail() {
     storagePath(child, inventory).some((part) => part.kind === "item" && part.id === item.id),
   );
 
-  async function archive() {
+  function archive() {
     const archived = item.archivedAt === null;
-    if (
-      !window.confirm(
-        archived ? "この物品をアーカイブしますか？ 管理番号と記録は残ります。" : "この物品を管理中に戻しますか？",
-      )
-    )
-      return;
-    setMessage("");
-    await run({ id: item.id, version: item.version, archived }, async () => {
-      await router.invalidate({ sync: true });
-      setEditing(false);
-      setMessage(archived ? "アーカイブしました。" : "管理中に戻しました。");
+    modals.openConfirmModal({
+      title: archived ? "物品をアーカイブ" : "物品を管理中に戻す",
+      children: archived
+        ? "この物品をアーカイブしますか？ 管理番号と記録は残ります。"
+        : "この物品を管理中に戻しますか？",
+      labels: { confirm: archived ? "アーカイブ" : "管理中に戻す", cancel: "キャンセル" },
+      onConfirm: async () => {
+        setMessage("");
+        await run({ id: item.id, version: item.version, archived }, async () => {
+          await router.invalidate({ sync: true });
+          setEditing(false);
+          setMessage(archived ? "アーカイブしました。" : "管理中に戻しました。");
+        });
+      },
     });
   }
 
   return (
     <>
-      <Link to="/">物品一覧に戻る</Link>
-      <div className="page-heading">
-        <h2 ref={heading} tabIndex={-1}>
+      <Anchor renderRoot={(props) => <Link {...props} to="/" />}>物品一覧に戻る</Anchor>
+      <div className={classes.pageHeading}>
+        <Title order={2} ref={heading} tabIndex={-1}>
           {item.name}
-        </h2>
+        </Title>
         {!editing && item.archivedAt === null && (
-          <button
+          <Button
             type="button"
             disabled={pending || navigating}
             onClick={() => {
@@ -75,20 +81,24 @@ function ItemDetail() {
             }}
           >
             物品を編集
-          </button>
+          </Button>
         )}
       </div>
-      {item.archivedAt !== null && <p>アーカイブ済み</p>}
-      <p>QR ページ：{item.isPublic && item.archivedAt === null ? "基本情報を公開中" : "非公開"}</p>
+      {item.archivedAt !== null && <Badge color="gray">アーカイブ済み</Badge>}
+      <Text>QR ページ：{item.isPublic && item.archivedAt === null ? "基本情報を公開中" : "非公開"}</Text>
       <p>
-        <a href={`/i/${itemCode(item)}`}>QR コード用のリンク</a>
+        <Anchor href={`/i/${itemCode(item)}`}>QR コード用のリンク</Anchor>
         {" | "}
-        <Link to="/i/$code" params={{ code: itemCode(item) }} search={{ preview: true }}>
+        <Anchor
+          renderRoot={(props) => (
+            <Link {...props} to="/i/$code" params={{ code: itemCode(item) }} search={{ preview: true }} />
+          )}
+        >
           未ログイン時の表示を確認
-        </Link>
+        </Anchor>
       </p>
       {!editing && (
-        <dl>
+        <dl className={classes.metadata}>
           <dt>管理番号</dt>
           <dd>{itemCode(item)}</dd>
           <dt>収納できる</dt>
@@ -106,13 +116,11 @@ function ItemDetail() {
           <dt>所有関係</dt>
           <dd>{ownershipLabels[item.ownership]}</dd>
           <dt>説明・メモ</dt>
-          <dd>
-            <div className="item-description">{item.description || "未入力"}</div>
-          </dd>
+          <dd className={classes.description}>{item.description || "未入力"}</dd>
         </dl>
       )}
-      {message && <p role="status">{message}</p>}
-      {error && <p role="alert">{error}</p>}
+      {message && <Alert role="status">{message}</Alert>}
+      {error && <Alert color="red">{error}</Alert>}
       {editing && item.archivedAt === null && (
         <ItemForm
           key={`item:${item.id}:${item.version}`}
@@ -132,7 +140,7 @@ function ItemDetail() {
         />
       )}
       <ItemImages item={item} assets={media.assets} onChanged={() => router.invalidate({ sync: true })} />
-      <details>
+      <details className={classes.details}>
         <summary>uses の公開設定（{media.entry?.isPublished ? "公開中" : "非公開"}）</summary>
         <UsesForm
           key={`uses:${item.id}:${media.entry?.version ?? "new"}`}
@@ -147,27 +155,27 @@ function ItemDetail() {
         />
       </details>
       <p>
-        <button
+        <Button
           type="button"
           onClick={archive}
           disabled={pending || navigating || editing || (item.archivedAt === null && directChildren.length > 0)}
         >
           {pending ? "更新中…" : item.archivedAt === null ? "アーカイブ" : "管理中に戻す"}
-        </button>
+        </Button>
       </p>
       {item.archivedAt === null && directChildren.length > 0 && (
         <p>アーカイブするには、先に中身を別の収納先へ移してください。</p>
       )}
       {item.isContainer && (
         <>
-          <h3>直接入っている物品（{directChildren.length} 件）</h3>
+          <Title order={3}>直接入っている物品（{directChildren.length} 件）</Title>
           {directChildren.length ? (
             <ItemTable items={directChildren} inventory={inventory} />
           ) : (
             <p>中身はありません。</p>
           )}
           {descendants.length > directChildren.length && (
-            <details>
+            <details className={classes.details}>
               <summary>入れ子の中身を含むすべての物品（{descendants.length} 件）</summary>
               <ItemTable items={descendants} inventory={inventory} />
             </details>

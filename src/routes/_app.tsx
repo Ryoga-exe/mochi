@@ -1,7 +1,9 @@
+import { Alert, Anchor, Button, Title } from "@mantine/core";
 import { createFileRoute, Link, Outlet, redirect, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
 import { getViewer } from "src/functions/inventory";
 import { authClient } from "src/lib/auth-client";
+import classes from "src/styles/layout.module.css";
 
 export const Route = createFileRoute("/_app")({
   beforeLoad: async () => {
@@ -34,29 +36,29 @@ function App() {
 
   return (
     <>
-      <a className="skip-link" href="#main-content">
+      <Anchor className={classes.skipLink} href="#main-content">
         本文へ移動
-      </a>
-      <header className="app-header">
-        <h1>
-          <Link to="/">mochi</Link>
-        </h1>
-        <nav aria-label="メイン">
-          <Link to="/" activeOptions={{ exact: true }}>
-            物品一覧
-          </Link>
-          <Link to="/items/new">物品を登録</Link>
-          <Link to="/locations">場所を管理</Link>
+      </Anchor>
+      <header className={classes.header}>
+        <Title order={1} className={classes.brand}>
+          <Anchor inherit renderRoot={(props) => <Link {...props} to="/" />}>
+            mochi
+          </Anchor>
+        </Title>
+        <nav className={classes.navigation} aria-label="メイン">
+          <Anchor renderRoot={(props) => <Link {...props} to="/" activeOptions={{ exact: true }} />}>物品一覧</Anchor>
+          <Anchor renderRoot={(props) => <Link {...props} to="/items/new" />}>物品を登録</Anchor>
+          <Anchor renderRoot={(props) => <Link {...props} to="/locations" />}>場所を管理</Anchor>
         </nav>
-        <p>
+        <div className={classes.account}>
           {viewer.name}{" "}
-          <button type="button" onClick={signOut} disabled={pending}>
+          <Button type="button" variant="default" onClick={signOut} loading={pending}>
             ログアウト
-          </button>
-        </p>
-        {error && <p role="alert">{error}</p>}
+          </Button>
+        </div>
+        {error && <Alert color="red">{error}</Alert>}
       </header>
-      <main id="main-content" tabIndex={-1} aria-busy={navigating}>
+      <main className={classes.content} id="main-content" tabIndex={-1} aria-busy={navigating}>
         <Outlet />
       </main>
     </>

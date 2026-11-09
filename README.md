@@ -5,6 +5,7 @@
 ## Stack
 
 - TypeScript / React / TanStack Start / Vite
+- Mantine / CSS Modules
 - Cloudflare Workers / D1 / R2
 - Drizzle ORM / Better Auth (GitHub OAuth)
 - pnpm / Biome

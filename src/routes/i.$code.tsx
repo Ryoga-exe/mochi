@@ -1,7 +1,9 @@
+import { Anchor, Button, Text, Title } from "@mantine/core";
 import { createFileRoute, Link, notFound, redirect } from "@tanstack/react-router";
 import { getViewer } from "src/functions/inventory";
 import { getPublicItem } from "src/functions/public-item";
 import { statusLabels } from "src/lib/item-attributes";
+import classes from "src/styles/layout.module.css";
 import { z } from "zod";
 
 export const Route = createFileRoute("/i/$code")({
@@ -25,21 +27,21 @@ export const Route = createFileRoute("/i/$code")({
 function OwnerLogin() {
   const { code } = Route.useParams();
   return (
-    <p>
-      <Link to="/login" search={{ item: code }}>
+    <Text>
+      <Anchor renderRoot={(props) => <Link {...props} to="/login" search={{ item: code }} />}>
         管理者としてログイン
-      </Link>
-    </p>
+      </Anchor>
+    </Text>
   );
 }
 
 function PublicItemPage() {
   const item = Route.useLoaderData();
   return (
-    <main>
-      <h1>{item.name}</h1>
-      <p>{item.ownerName} の物品です。</p>
-      <dl>
+    <main className={classes.standalone}>
+      <Title order={1}>{item.name}</Title>
+      <Text>{item.ownerName} の物品です。</Text>
+      <dl className={classes.metadata}>
         <dt>状態</dt>
         <dd>{statusLabels[item.status]}</dd>
         {item.description && (
@@ -49,10 +51,10 @@ function PublicItemPage() {
           </>
         )}
       </dl>
-      <button type="button" disabled>
+      <Button type="button" disabled>
         紛失・拾得を報告する（準備中）
-      </button>
-      <p>報告機能はまだ利用できません。</p>
+      </Button>
+      <Text>報告機能はまだ利用できません。</Text>
       <OwnerLogin />
     </main>
   );
@@ -60,9 +62,9 @@ function PublicItemPage() {
 
 function UnavailableItem() {
   return (
-    <main>
-      <h1>物品の情報を表示できません。</h1>
-      <p>情報が公開されていないか、物品が見つかりません。</p>
+    <main className={classes.standalone}>
+      <Title order={1}>物品の情報を表示できません。</Title>
+      <Text>情報が公開されていないか、物品が見つかりません。</Text>
       <OwnerLogin />
     </main>
   );

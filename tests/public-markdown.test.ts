@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 
+import { MantineProvider } from "@mantine/core";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Markdown } from "src/components/markdown";
@@ -16,12 +17,15 @@ function fragment(html: string) {
   return template.content;
 }
 
+function renderPreview(source: string, assetUrls?: Record<string, string>) {
+  return renderToStaticMarkup(
+    createElement(MantineProvider, { env: "test" }, createElement(Markdown, { source, assetUrls })),
+  );
+}
+
 function documents(source: string) {
   const assetUrls = { [id]: url };
-  return [
-    renderMarkdown(source, assetUrls).html,
-    renderToStaticMarkup(createElement(Markdown, { source, assetUrls })),
-  ].map(fragment);
+  return [renderMarkdown(source, assetUrls).html, renderPreview(source, assetUrls)].map(fragment);
 }
 
 test("preserves prose around inline images and renders safe GFM", () => {
@@ -70,7 +74,7 @@ test.each([
   "[x][bad]\n\n[bad]: javascript:alert%281%29",
 ])("rejects HTML, unsafe links and unselected images: %s", (source) => {
   expect(() => renderMarkdown(source, {})).toThrow();
-  const preview = fragment(renderToStaticMarkup(createElement(Markdown, { source })));
+  const preview = fragment(renderPreview(source));
   expect(preview.querySelector('[role="alert"]')).not.toBeNull();
   expect(preview.querySelector("script, img, a")).toBeNull();
 });

@@ -1,3 +1,4 @@
+import { Alert, Anchor, Button, Checkbox, Fieldset, Textarea, TextInput, Title } from "@mantine/core";
 import { useHydrated, useRouterState } from "@tanstack/react-router";
 import { type FormEvent, useRef, useState } from "react";
 import { saveUsesAction, unpublishUsesAction } from "src/functions/media";
@@ -11,6 +12,7 @@ import {
   type UsesEntry,
   type UsesImage,
 } from "src/lib/media";
+import classes from "src/styles/layout.module.css";
 import { Markdown } from "./markdown";
 
 export function UsesForm({
@@ -88,195 +90,175 @@ export function UsesForm({
   }
 
   return (
-    <section>
-      <h3>uses の公開設定</h3>
+    <section className={classes.fields}>
+      <Title order={3}>uses の公開設定</Title>
       <p>
         {entry?.isPublished ? "公開中" : "非公開"}
         。管理メモ・保管場所・管理用のタグは公開されません。公開用に入力した内容と選択した画像を API で公開します。
       </p>
       {entry?.isPublished && (
-        <p>
-          <a href={`/api/v1/uses/${entry.id}`}>公開 API を確認</a>{" "}
-          <button
+        <div className={classes.actions}>
+          <Anchor href={`/api/v1/uses/${entry.id}`}>公開 API を確認</Anchor>
+          <Button
             type="button"
+            variant="default"
             disabled={disabled}
             onClick={() =>
               unpublish.run({ id: entry.id, version: entry.version }, () => onChanged("非公開にしました。"))
             }
           >
             今すぐ非公開にする
-          </button>
-        </p>
+          </Button>
+        </div>
       )}
       <form method="post" onSubmit={submit}>
-        <fieldset disabled={disabled}>
-          <legend>公開する内容</legend>
-          <p>
-            <label>
-              公開タイトル
-              <br />
-              <input
-                name="title"
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                maxLength={200}
-                required={isPublished}
-              />
-            </label>
-          </p>
-          <p>
-            <label>
-              製品リンク
-              <br />
-              <input type="url" name="externalUrl" defaultValue={entry?.externalUrl ?? ""} maxLength={2000} />
-            </label>
-          </p>
-          <p>
-            <label>
-              セクション
-              <br />
-              <input name="section" defaultValue={entry?.section ?? ""} maxLength={100} placeholder="Desk setup" />
-            </label>
-          </p>
-          <p>
-            <label>
-              公開用のタグ（カンマ区切り）
-              <br />
-              <input name="tags" defaultValue={entry?.tags.join(", ") ?? ""} maxLength={1000} />
-            </label>
-          </p>
-          <p>
-            <label>
-              表示順（小さい順）
-              <br />
-              <input
-                type="number"
-                name="sortOrder"
-                defaultValue={entry?.sortOrder ?? 0}
-                min={-10000}
-                max={10000}
-                required
-              />
-            </label>
-          </p>
-          <p>
-            <label>
-              公開用の説明（Markdown）
-              <br />
-              <textarea
-                ref={textarea}
-                name="descriptionMarkdown"
-                value={source}
-                onChange={(event) => setSource(event.target.value)}
-                rows={16}
-                cols={70}
-                maxLength={MAX_MARKDOWN_LENGTH}
-              />
-            </label>
-          </p>
-          <p>
-            2万文字まで。見出し・箇条書き・表・コード・リンクに対応します。画像は下の「本文に挿入」から追加できます。HTML
-            と外部画像の埋め込みには対応していません。
-          </p>
-          <h4>公開する画像</h4>
+        <Fieldset legend="公開する内容" disabled={disabled} className={classes.fields}>
+          <TextInput
+            name="title"
+            label="公開タイトル"
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            maxLength={200}
+            required={isPublished}
+          />
+          <TextInput
+            type="url"
+            name="externalUrl"
+            label="製品リンク"
+            defaultValue={entry?.externalUrl ?? ""}
+            maxLength={2000}
+          />
+          <TextInput
+            name="section"
+            label="セクション"
+            defaultValue={entry?.section ?? ""}
+            maxLength={100}
+            placeholder="Desk setup"
+          />
+          <TextInput
+            name="tags"
+            label="公開用のタグ（カンマ区切り）"
+            defaultValue={entry?.tags.join(", ") ?? ""}
+            maxLength={1000}
+          />
+          <TextInput
+            type="number"
+            name="sortOrder"
+            label="表示順（小さい順）"
+            defaultValue={entry?.sortOrder ?? 0}
+            min={-10000}
+            max={10000}
+            required
+          />
+          <Textarea
+            ref={textarea}
+            name="descriptionMarkdown"
+            label="公開用の説明（Markdown）"
+            value={source}
+            onChange={(event) => setSource(event.target.value)}
+            rows={16}
+            maxLength={MAX_MARKDOWN_LENGTH}
+            description="2万文字まで。見出し・箇条書き・表・コード・リンクに対応します。画像は下の「本文に挿入」から追加できます。HTML と外部画像の埋め込みには対応していません。"
+          />
+          <Title order={4}>公開する画像</Title>
           {assets
             .filter((asset) => asset.state === "ready")
             .map((asset) => (
-              <p key={asset.id}>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={images.some((image) => image.assetId === asset.id)}
-                    onChange={(event) =>
-                      event.target.checked
-                        ? selectImage(asset.id, true)
-                        : setImages((current) => current.filter((image) => image.assetId !== asset.id))
-                    }
-                  />{" "}
-                  {asset.filename}
-                </label>{" "}
-                <button type="button" onClick={() => insertImage(asset.id)}>
+              <div className={classes.actions} key={asset.id}>
+                <Checkbox
+                  label={asset.filename}
+                  checked={images.some((image) => image.assetId === asset.id)}
+                  onChange={(event) =>
+                    event.target.checked
+                      ? selectImage(asset.id, true)
+                      : setImages((current) => current.filter((image) => image.assetId !== asset.id))
+                  }
+                />
+                <Button type="button" variant="default" onClick={() => insertImage(asset.id)}>
                   本文に挿入
-                </button>
-              </p>
+                </Button>
+              </div>
             ))}
           {images.map((image, index) => (
-            <fieldset key={image.assetId}>
-              <legend>公開画像 {index + 1}</legend>
-              <img src={privateImageUrl(image.assetId)} alt={image.alt} width={160} loading="lazy" />
-              <p>
-                <label>
-                  代替テキスト{" "}
-                  <input
-                    value={image.alt}
-                    maxLength={300}
-                    onChange={(event) => updateImage(image.assetId, { alt: event.target.value })}
-                  />
-                </label>
-              </p>
-              <p>
-                <label>
-                  画像の説明{" "}
-                  <input
-                    value={image.caption}
-                    maxLength={1000}
-                    onChange={(event) => updateImage(image.assetId, { caption: event.target.value })}
-                  />
-                </label>
-              </p>
-              <p>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={image.inGallery}
-                    onChange={(event) => updateImage(image.assetId, { inGallery: event.target.checked })}
-                  />
-                  ギャラリーにも表示する
-                </label>
-              </p>
-              <button type="button" disabled={index === 0} onClick={() => moveImage(index, -1)}>
-                前へ
-              </button>{" "}
-              <button type="button" disabled={index === images.length - 1} onClick={() => moveImage(index, 1)}>
-                後へ
-              </button>{" "}
-              <button
-                type="button"
-                onClick={() => setImages((current) => current.filter((selected) => selected.assetId !== image.assetId))}
-              >
-                公開対象から外す
-              </button>
-            </fieldset>
+            <Fieldset key={image.assetId} legend={`公開画像 ${index + 1}`} className={classes.fields}>
+              <img
+                className={classes.previewImage}
+                src={privateImageUrl(image.assetId)}
+                alt={image.alt}
+                width={160}
+                loading="lazy"
+              />
+              <TextInput
+                label="代替テキスト"
+                value={image.alt}
+                maxLength={300}
+                onChange={(event) => updateImage(image.assetId, { alt: event.target.value })}
+              />
+              <TextInput
+                label="画像の説明"
+                value={image.caption}
+                maxLength={1000}
+                onChange={(event) => updateImage(image.assetId, { caption: event.target.value })}
+              />
+              <Checkbox
+                label="ギャラリーにも表示する"
+                checked={image.inGallery}
+                onChange={(event) => updateImage(image.assetId, { inGallery: event.target.checked })}
+              />
+              <div className={classes.actions}>
+                <Button type="button" variant="default" disabled={index === 0} onClick={() => moveImage(index, -1)}>
+                  前へ
+                </Button>
+                <Button
+                  type="button"
+                  variant="default"
+                  disabled={index === images.length - 1}
+                  onClick={() => moveImage(index, 1)}
+                >
+                  後へ
+                </Button>
+                <Button
+                  type="button"
+                  variant="default"
+                  onClick={() =>
+                    setImages((current) => current.filter((selected) => selected.assetId !== image.assetId))
+                  }
+                >
+                  公開対象から外す
+                </Button>
+              </div>
+            </Fieldset>
           ))}
           <p>
             本文に挿入した画像を uses API
             の公開対象から外すには、本文中の画像記法と画像の選択を両方外して保存してください。
           </p>
-          <details>
+          <details className={classes.details}>
             <summary>プレビュー</summary>
-            <h4>{title}</h4>
+            <Title order={4}>{title}</Title>
             <Markdown source={source} assetUrls={assetUrls} />
             {images
               .filter((image) => image.inGallery)
               .map((image) => (
-                <figure key={image.assetId}>
+                <figure className={classes.image} key={image.assetId}>
                   <img src={privateImageUrl(image.assetId)} alt={image.alt} width={240} />
                   <figcaption>{image.caption}</figcaption>
                 </figure>
               ))}
           </details>
-          <p>
-            <label>
-              <input type="checkbox" checked={isPublished} onChange={(event) => setPublished(event.target.checked)} />
-              保存した内容を uses API で公開する
-            </label>
-          </p>
-          <button type="submit">
-            {save.pending ? "保存中…" : isPublished ? "公開内容を保存して公開" : "下書きを保存（非公開）"}
-          </button>
-        </fieldset>
-        {save.error && <p role="alert">{save.error}</p>}
-        {unpublish.error && <p role="alert">{unpublish.error}</p>}
+          <Checkbox
+            label="保存した内容を uses API で公開する"
+            checked={isPublished}
+            onChange={(event) => setPublished(event.target.checked)}
+          />
+          <div className={classes.actions}>
+            <Button type="submit" loading={save.pending}>
+              {save.pending ? "保存中…" : isPublished ? "公開内容を保存して公開" : "下書きを保存（非公開）"}
+            </Button>
+          </div>
+        </Fieldset>
+        {save.error && <Alert color="red">{save.error}</Alert>}
+        {unpublish.error && <Alert color="red">{unpublish.error}</Alert>}
       </form>
     </section>
   );

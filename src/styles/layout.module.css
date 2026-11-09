@@ -1,0 +1,196 @@
+.page {
+  max-width: 76rem;
+  margin-inline: auto;
+  padding: 1rem clamp(1rem, 4vw, 2rem) 3rem;
+}
+
+.content,
+.fields {
+  display: grid;
+  gap: var(--mantine-spacing-md);
+  min-width: 0;
+  align-content: start;
+}
+
+.header,
+.navigation,
+.account,
+.actions,
+.pageHeading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mantine-spacing-sm);
+}
+
+.header {
+  gap: var(--mantine-spacing-lg);
+  margin-bottom: var(--mantine-spacing-xl);
+  padding-bottom: var(--mantine-spacing-md);
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}
+
+.brand {
+  font-size: var(--mantine-h4-font-size);
+}
+
+.navigation {
+  gap: var(--mantine-spacing-lg);
+}
+
+.navigation a {
+  padding-block: var(--mantine-spacing-xs);
+}
+
+.navigation a[aria-current="page"] {
+  font-weight: 700;
+}
+
+.account {
+  margin-left: auto;
+}
+
+.pageHeading {
+  justify-content: space-between;
+}
+
+.pageHeading h2 {
+  overflow-wrap: anywhere;
+}
+
+.search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--mantine-spacing-sm);
+}
+
+.filterGrid,
+.imageGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: var(--mantine-spacing-md);
+}
+
+.details {
+  padding: var(--mantine-spacing-md);
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-default);
+}
+
+.details > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.details[open] > summary {
+  margin-bottom: var(--mantine-spacing-md);
+}
+
+.tableScroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.table {
+  min-width: 44rem;
+}
+
+.table th {
+  white-space: nowrap;
+}
+
+.itemName {
+  min-width: 13rem;
+}
+
+.code {
+  display: block;
+  color: var(--mantine-color-dimmed);
+  font: var(--mantine-font-size-sm) var(--mantine-font-family-monospace);
+}
+
+.metadata {
+  display: grid;
+  grid-template-columns: minmax(8rem, 10rem) minmax(0, 1fr);
+  gap: var(--mantine-spacing-xs) var(--mantine-spacing-md);
+  margin: 0;
+}
+
+.metadata dt {
+  color: var(--mantine-color-dimmed);
+}
+
+.metadata dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.description {
+  white-space: pre-wrap;
+}
+
+.image {
+  display: grid;
+  align-content: start;
+  gap: var(--mantine-spacing-xs);
+  min-width: 0;
+  margin: 0;
+}
+
+.image img {
+  max-width: 100%;
+  height: auto;
+}
+
+.previewImage {
+  max-width: 100%;
+  height: auto;
+}
+
+.image figcaption {
+  overflow-wrap: anywhere;
+}
+
+.image button {
+  justify-self: start;
+}
+
+.standalone {
+  max-width: 36rem;
+  display: grid;
+  gap: var(--mantine-spacing-lg);
+}
+
+.locations {
+  display: grid;
+  gap: var(--mantine-spacing-md);
+  padding: 0;
+  list-style: none;
+}
+
+.skipLink {
+  position: absolute;
+  top: 0.5rem;
+  left: 1rem;
+  z-index: 1;
+  transform: translateY(-200%);
+  padding: var(--mantine-spacing-xs) var(--mantine-spacing-md);
+  background: var(--mantine-color-body);
+}
+
+.skipLink:focus {
+  transform: none;
+}
+
+@media (max-width: 40em) {
+  .metadata {
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+    gap: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
+  }
+
+  .navigation {
+    order: 1;
+    width: 100%;
+  }
+}

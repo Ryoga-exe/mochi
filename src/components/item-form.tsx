@@ -1,3 +1,4 @@
+import { Alert, Button, Checkbox, Fieldset, NativeSelect, Textarea, TextInput } from "@mantine/core";
 import { useHydrated, useRouterState } from "@tanstack/react-router";
 import { type FormEvent, useEffect, useRef } from "react";
 import { saveItemAction } from "src/functions/inventory";
@@ -13,6 +14,7 @@ import {
   storageLabel,
 } from "src/lib/inventory";
 import { MAX_PUBLIC_DESCRIPTION_LENGTH } from "src/lib/public-item";
+import classes from "src/styles/layout.module.css";
 
 export function ItemForm({
   item,
@@ -67,139 +69,102 @@ export function ItemForm({
 
   return (
     <form method="post" onSubmit={submit}>
-      <fieldset disabled={!hydrated || pending || navigating}>
-        <legend>{item ? "物品を編集" : "物品を登録"}</legend>
-        <p>
-          <label>
-            品名（必須）
-            <br />
-            <input ref={nameField} name="name" required maxLength={200} defaultValue={item?.name ?? ""} />
-          </label>
-        </p>
-        <p>
-          <label>
-            収納先
-            <br />
-            <select name="storage" defaultValue={storage}>
-              <option value="">未設定</option>
-              <optgroup label="場所">
-                {inventory.locations.map((location) => (
-                  <option key={location.id} value={`location:${location.id}`}>
-                    {locationPath(location, inventory)
-                      .map((entry) => entry.name)
-                      .join(" › ")}
-                  </option>
-                ))}
-              </optgroup>
-              <optgroup label="物品の中">
-                {containerChoices(inventory, item?.id).map((container) => (
-                  <option key={container.id} value={`item:${container.id}`}>
-                    {container.name} [{itemCode(container)}] — {storageLabel(container, inventory)}
-                  </option>
-                ))}
-              </optgroup>
-            </select>
-          </label>
-        </p>
-        <p>
-          <label>
-            <input type="checkbox" name="isContainer" defaultChecked={item?.isContainer ?? false} />
-            ほかの物品を収納できる
-          </label>
-        </p>
-        <p>バッグや箱など。中身がある間はオフにできません。</p>
-        <details open={hasDetails}>
+      <Fieldset
+        legend={item ? "物品を編集" : "物品を登録"}
+        disabled={!hydrated || pending || navigating}
+        className={classes.fields}
+      >
+        <TextInput ref={nameField} name="name" label="品名" required maxLength={200} defaultValue={item?.name ?? ""} />
+        <NativeSelect name="storage" label="収納先" defaultValue={storage}>
+          <option value="">未設定</option>
+          <optgroup label="場所">
+            {inventory.locations.map((location) => (
+              <option key={location.id} value={`location:${location.id}`}>
+                {locationPath(location, inventory)
+                  .map((entry) => entry.name)
+                  .join(" › ")}
+              </option>
+            ))}
+          </optgroup>
+          <optgroup label="物品の中">
+            {containerChoices(inventory, item?.id).map((container) => (
+              <option key={container.id} value={`item:${container.id}`}>
+                {container.name} [{itemCode(container)}] — {storageLabel(container, inventory)}
+              </option>
+            ))}
+          </optgroup>
+        </NativeSelect>
+        <Checkbox
+          name="isContainer"
+          label="ほかの物品を収納できる"
+          description="バッグや箱など。中身がある間はオフにできません。"
+          defaultChecked={item?.isContainer ?? false}
+        />
+        <details className={classes.details} open={hasDetails}>
           <summary>メモ・タグ・状態など</summary>
-          <p>
-            <label>
-              説明・メモ
-              <br />
-              <textarea
-                name="description"
-                rows={6}
-                cols={50}
-                maxLength={10000}
-                defaultValue={item?.description ?? ""}
-              />
-            </label>
-          </p>
-          <p>
-            <label>
-              タグ（カンマ区切り）
-              <br />
-              <input
-                name="tags"
-                maxLength={1000}
-                placeholder="ガジェット, USB-C, 予備"
-                defaultValue={item?.tags.join(", ") ?? ""}
-              />
-            </label>
-          </p>
-          <p>タグは1つ40文字、20個まで設定できます。</p>
-          <p>
-            <label>
-              状態
-              <br />
-              <select name="status" defaultValue={item?.status ?? "available"}>
-                {Object.entries(statusLabels).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </p>
-          <p>
-            <label>
-              所有関係
-              <br />
-              <select name="ownership" defaultValue={item?.ownership ?? "owned"}>
-                {Object.entries(ownershipLabels).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </p>
+          <div className={classes.fields}>
+            <Textarea
+              name="description"
+              label="説明・メモ"
+              rows={6}
+              maxLength={10000}
+              defaultValue={item?.description ?? ""}
+            />
+            <TextInput
+              name="tags"
+              label="タグ（カンマ区切り）"
+              description="タグは1つ40文字、20個まで設定できます。"
+              maxLength={1000}
+              placeholder="ガジェット, USB-C, 予備"
+              defaultValue={item?.tags.join(", ") ?? ""}
+            />
+            <NativeSelect name="status" label="状態" defaultValue={item?.status ?? "available"}>
+              {Object.entries(statusLabels).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </NativeSelect>
+            <NativeSelect name="ownership" label="所有関係" defaultValue={item?.ownership ?? "owned"}>
+              {Object.entries(ownershipLabels).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </NativeSelect>
+          </div>
         </details>
-        <details>
+        <details className={classes.details}>
           <summary>QR ページの公開設定</summary>
-          <p>
-            <label>
-              <input type="checkbox" name="isPublic" defaultChecked={item?.isPublic ?? false} />
-              未ログインでも物品の基本情報を表示する
-            </label>
-          </p>
-          <p>
-            オンにすると、持ち主の表示名・品名・状態と、以下の短い説明を公開します。管理メモ・収納先・タグ・画像は表示しません。uses
-            API の公開設定とは別です。
-          </p>
-          <p>
-            <label>
-              短い説明（QR 公開用）
-              <br />
-              <textarea
-                name="publicDescription"
-                rows={3}
-                cols={50}
-                maxLength={MAX_PUBLIC_DESCRIPTION_LENGTH}
-                defaultValue={item?.publicDescription ?? ""}
-              />
-            </label>
-          </p>
-          <p>{MAX_PUBLIC_DESCRIPTION_LENGTH}文字まで。管理メモからは自動転記しません。</p>
+          <div className={classes.fields}>
+            <Checkbox
+              name="isPublic"
+              label="未ログインでも物品の基本情報を表示する"
+              description="持ち主の表示名・品名・状態と、以下の短い説明を公開します。管理メモ・収納先・タグ・画像は表示しません。uses API の公開設定とは別です。"
+              defaultChecked={item?.isPublic ?? false}
+            />
+            <Textarea
+              name="publicDescription"
+              label="短い説明（QR 公開用）"
+              description={`${MAX_PUBLIC_DESCRIPTION_LENGTH}文字まで。管理メモからは自動転記しません。`}
+              rows={3}
+              maxLength={MAX_PUBLIC_DESCRIPTION_LENGTH}
+              defaultValue={item?.publicDescription ?? ""}
+            />
+          </div>
         </details>
-        {error && <p role="alert">{error}</p>}
-        <div className="actions">
-          <button type="submit">{pending ? "保存中…" : item ? "変更を保存" : "登録して詳細へ"}</button>
+        {error && <Alert color="red">{error}</Alert>}
+        <div className={classes.actions}>
+          <Button type="submit" loading={pending}>
+            {pending ? "保存中…" : item ? "変更を保存" : "登録して詳細へ"}
+          </Button>
           {onCancel && (
-            <button type="button" onClick={onCancel}>
+            <Button type="button" variant="default" onClick={onCancel}>
               キャンセル
-            </button>
+            </Button>
           )}
         </div>
-      </fieldset>
+      </Fieldset>
     </form>
   );
 }

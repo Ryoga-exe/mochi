@@ -1,3 +1,4 @@
+import { Text, Title } from "@mantine/core";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { ItemForm } from "src/components/item-form";
@@ -15,8 +16,8 @@ function NewItem() {
   const navigate = useNavigate();
   return (
     <>
-      <h2>物品を登録</h2>
-      <p>品名だけで登録できます。管理番号は登録年（日本時間）を含めて自動で発行されます。</p>
+      <Title order={2}>物品を登録</Title>
+      <Text>品名だけで登録できます。管理番号は登録年（日本時間）を含めて自動で発行されます。</Text>
       <ItemForm
         inventory={inventory}
         onSaved={async (item) => {
