@@ -197,8 +197,8 @@ importers:
         specifier: ^2.3.7
         version: 2.3.7(supports-color@10.2.2)
       image-size:
-        specifier: ^2.0.4
-        version: 2.0.4
+        specifier: ^2.1.0
+        version: 2.1.0
       mdast-util-to-hast:
         specifier: ^13.2.1
         version: 13.2.1
@@ -2149,8 +2149,8 @@ packages:
   html-void-elements@3.0.0:
     resolution: {integrity: sha512-bEqo66MRXsUGxWHV5IP0PUiAWwoEjba4VCzg0LjFJBpchPaTfyfCKTG6bc5F8ucKec3q5y6qOdGyYTSBEvhCrg==}
 
-  image-size@2.0.4:
-    resolution: {integrity: sha512-QRUkFFsRV/6fuESxb9Vkq+a0LkSrgKXuc2NEqfikiXxxN/G3tjWt5EVUlMaImRBZRZK/jRBEbYvpPYZL8t08Zw==}
+  image-size@2.1.0:
+    resolution: {integrity: sha512-6Dbisa46RsgeAh3TMSFL2i8+uIFG+/LRmz6Q2oscSJJvXo1sOw3EgNO4M8jPl1P+gR1atJLDPrpclX4IHz63sA==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -4406,7 +4406,7 @@ snapshots:
 
   html-void-elements@3.0.0: {}
 
-  image-size@2.0.4: {}
+  image-size@2.1.0: {}
 
   inline-style-parser@0.2.9: {}
 
