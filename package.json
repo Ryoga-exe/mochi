@@ -34,7 +34,7 @@
     "drizzle-orm": "^0.45.4",
     "hast-util-to-html": "^9.0.6",
     "hast-util-to-jsx-runtime": "^2.3.7",
-    "image-size": "^2.0.4",
+    "image-size": "^2.1.0",
     "mdast-util-to-hast": "^13.2.1",
     "picscrub": "^1.2.0",
     "react": "^19.3.1",
