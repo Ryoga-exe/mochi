@@ -13,7 +13,6 @@ import {
   statusLabels,
   storageLabel,
 } from "src/lib/inventory";
-import { MAX_PUBLIC_DESCRIPTION_LENGTH } from "src/lib/public-item";
 import classes from "src/styles/layout.module.css";
 
 export function ItemForm({
@@ -50,8 +49,8 @@ export function ItemForm({
         name: String(data.get("name") ?? ""),
         description: String(data.get("description") ?? ""),
         isContainer: data.has("isContainer"),
-        isPublic: data.has("isPublic"),
-        publicDescription: String(data.get("publicDescription") ?? ""),
+        isPublic: item?.isPublic ?? false,
+        publicDescription: item?.publicDescription ?? "",
         tags: String(data.get("tags") ?? ""),
         status: String(data.get("status") ?? ""),
         ownership: String(data.get("ownership") ?? ""),
@@ -65,7 +64,8 @@ export function ItemForm({
   return (
     <form method="post" onSubmit={submit}>
       <Fieldset
-        legend={item ? "物品を編集" : "物品を登録"}
+        variant="unstyled"
+        aria-label={item ? "物品を編集" : "物品を登録"}
         disabled={!hydrated || pending || navigating}
         className={classes.fields}
       >
@@ -133,25 +133,6 @@ export function ItemForm({
                 </option>
               ))}
             </NativeSelect>
-          </div>
-        </details>
-        <details className={classes.details}>
-          <summary>QR ページの公開設定</summary>
-          <div className={classes.fields}>
-            <Checkbox
-              name="isPublic"
-              label="QR ページを公開する"
-              description="公開内容：持ち主の表示名・品名・状態・短い説明"
-              defaultChecked={item?.isPublic ?? false}
-            />
-            <Textarea
-              name="publicDescription"
-              label="短い説明（QR 公開用）"
-              description={`${MAX_PUBLIC_DESCRIPTION_LENGTH}文字まで`}
-              rows={3}
-              maxLength={MAX_PUBLIC_DESCRIPTION_LENGTH}
-              defaultValue={item?.publicDescription ?? ""}
-            />
           </div>
         </details>
         {error && <Alert color="red">{error}</Alert>}

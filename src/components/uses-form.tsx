@@ -107,7 +107,7 @@ export function UsesForm({
         </div>
       )}
       <form method="post" onSubmit={submit}>
-        <Fieldset legend="公開する内容" disabled={disabled} className={classes.fields}>
+        <Fieldset variant="unstyled" aria-label="uses の公開設定" disabled={disabled} className={classes.fields}>
           <TextInput
             name="title"
             label="公開タイトル"
@@ -155,7 +155,7 @@ export function UsesForm({
             maxLength={MAX_MARKDOWN_LENGTH}
             description="HTML・外部画像は使用できません。"
           />
-          <Title order={3} size="h4">
+          <Title order={5} size="h4">
             公開する画像
           </Title>
           {assets
@@ -229,7 +229,7 @@ export function UsesForm({
           <p>画像の公開をやめるには、本文と画像の選択の両方から外して保存してください。</p>
           <details className={classes.details}>
             <summary>プレビュー</summary>
-            <Title order={3} size="h4">
+            <Title order={5} size="h4">
               {title}
             </Title>
             <Markdown source={source} assetUrls={assetUrls} />
