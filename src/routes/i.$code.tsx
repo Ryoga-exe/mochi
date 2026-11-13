@@ -54,7 +54,6 @@ function PublicItemPage() {
       <Button type="button" disabled>
         紛失・拾得を報告する（準備中）
       </Button>
-      <Text>報告機能はまだ利用できません。</Text>
       <OwnerLogin />
     </main>
   );

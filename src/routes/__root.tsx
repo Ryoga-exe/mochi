@@ -11,7 +11,6 @@ export const Route = createRootRoute({
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "mochi" },
-      { name: "description", content: "持ち物と、その居場所を管理する。" },
     ],
   }),
   shellComponent: RootDocument,

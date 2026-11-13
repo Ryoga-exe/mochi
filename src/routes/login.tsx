@@ -1,4 +1,4 @@
-import { Alert, Button, Text, Title } from "@mantine/core";
+import { Alert, Button, Title } from "@mantine/core";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { getViewer } from "src/functions/inventory";
@@ -48,8 +48,6 @@ function Login() {
   return (
     <main className={classes.standalone}>
       <Title order={1}>mochi</Title>
-      <Text>持ち物と、その居場所を管理する。</Text>
-      <Text>管理者の GitHub アカウントでログインしてください。</Text>
       {(error || search.error) && (
         <Alert color="red">{error || "ログインできませんでした。許可されたアカウントか確認してください。"}</Alert>
       )}

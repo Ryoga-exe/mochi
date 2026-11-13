@@ -16,7 +16,8 @@
 .navigation,
 .account,
 .actions,
-.pageHeading {
+.pageHeading,
+.filterToolbar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -50,7 +51,8 @@
   margin-left: auto;
 }
 
-.pageHeading {
+.pageHeading,
+.filterToolbar {
   justify-content: space-between;
 }
 
@@ -65,7 +67,6 @@
   gap: var(--mantine-spacing-sm);
 }
 
-.filterGrid,
 .imageGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
@@ -93,15 +94,38 @@
 }
 
 .table {
-  min-width: 44rem;
+  min-width: 22rem;
 }
 
 .table th {
   white-space: nowrap;
 }
 
+.table td {
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
 .itemName {
-  min-width: 13rem;
+  width: 45%;
+  min-width: 10rem;
+}
+
+.itemMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mantine-spacing-xs);
+}
+
+.itemTags,
+.itemTags a {
+  font-size: var(--mantine-font-size-sm);
+}
+
+.itemStatus {
+  width: 4rem;
+  white-space: nowrap;
 }
 
 .code {

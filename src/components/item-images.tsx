@@ -49,10 +49,6 @@ export function ItemImages({
       <details className={classes.details} open={assets.length === 0}>
         <summary>画像を追加・撮影する</summary>
         <div className={classes.fields}>
-          <p>
-            追加した画像は uses API
-            の公開対象には自動で追加されません。長辺2000px以下に縮小し、位置情報などのメタデータを除いて保存します。
-          </p>
           <form method="post" onSubmit={submit}>
             <Fieldset
               legend="画像を追加"
@@ -86,7 +82,7 @@ export function ItemImages({
               </div>
             </Fieldset>
           </form>
-          <p>元画像は1枚20MBまで。カメラの起動はブラウザー・端末の対応状況によります。</p>
+          <p>1枚20 MBまで。</p>
         </div>
       </details>
       {message && <Alert role="status">{message}</Alert>}

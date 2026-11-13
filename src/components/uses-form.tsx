@@ -91,11 +91,6 @@ export function UsesForm({
 
   return (
     <section className={classes.fields}>
-      <Title order={3}>uses の公開設定</Title>
-      <p>
-        {entry?.isPublished ? "公開中" : "非公開"}
-        。管理メモ・保管場所・管理用のタグは公開されません。公開用に入力した内容と選択した画像を API で公開します。
-      </p>
       {entry?.isPublished && (
         <div className={classes.actions}>
           <Anchor href={`/api/v1/uses/${entry.id}`}>公開 API を確認</Anchor>
@@ -107,7 +102,7 @@ export function UsesForm({
               unpublish.run({ id: entry.id, version: entry.version }, () => onChanged("非公開にしました。"))
             }
           >
-            今すぐ非公開にする
+            非公開にする
           </Button>
         </div>
       )}
@@ -158,9 +153,11 @@ export function UsesForm({
             onChange={(event) => setSource(event.target.value)}
             rows={16}
             maxLength={MAX_MARKDOWN_LENGTH}
-            description="2万文字まで。見出し・箇条書き・表・コード・リンクに対応します。画像は下の「本文に挿入」から追加できます。HTML と外部画像の埋め込みには対応していません。"
+            description="HTML・外部画像は使用できません。"
           />
-          <Title order={4}>公開する画像</Title>
+          <Title order={3} size="h4">
+            公開する画像
+          </Title>
           {assets
             .filter((asset) => asset.state === "ready")
             .map((asset) => (
@@ -229,13 +226,12 @@ export function UsesForm({
               </div>
             </Fieldset>
           ))}
-          <p>
-            本文に挿入した画像を uses API
-            の公開対象から外すには、本文中の画像記法と画像の選択を両方外して保存してください。
-          </p>
+          <p>画像の公開をやめるには、本文と画像の選択の両方から外して保存してください。</p>
           <details className={classes.details}>
             <summary>プレビュー</summary>
-            <Title order={4}>{title}</Title>
+            <Title order={3} size="h4">
+              {title}
+            </Title>
             <Markdown source={source} assetUrls={assetUrls} />
             {images
               .filter((image) => image.inGallery)
@@ -247,13 +243,14 @@ export function UsesForm({
               ))}
           </details>
           <Checkbox
-            label="保存した内容を uses API で公開する"
+            label="uses API で公開する"
+            description="入力内容と、本文・ギャラリーの画像を公開します。"
             checked={isPublished}
             onChange={(event) => setPublished(event.target.checked)}
           />
           <div className={classes.actions}>
             <Button type="submit" loading={save.pending}>
-              {save.pending ? "保存中…" : isPublished ? "公開内容を保存して公開" : "下書きを保存（非公開）"}
+              {save.pending ? "保存中…" : isPublished ? "保存して公開" : "非公開で保存"}
             </Button>
           </div>
         </Fieldset>

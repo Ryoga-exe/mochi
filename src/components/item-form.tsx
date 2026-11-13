@@ -1,6 +1,6 @@
 import { Alert, Button, Checkbox, Fieldset, NativeSelect, Textarea, TextInput } from "@mantine/core";
 import { useHydrated, useRouterState } from "@tanstack/react-router";
-import { type FormEvent, useEffect, useRef } from "react";
+import type { FormEvent } from "react";
 import { saveItemAction } from "src/functions/inventory";
 import { useMutation } from "src/hooks/use-mutation";
 import {
@@ -30,14 +30,9 @@ export function ItemForm({
   const { run, pending, error } = useMutation(saveItemAction);
   const hydrated = useHydrated();
   const navigating = useRouterState({ select: (state) => state.status === "pending" });
-  const nameField = useRef<HTMLInputElement>(null);
-  const editing = Boolean(item);
   const hasDetails = Boolean(
     item && (item.description || item.tags.length || item.status !== "available" || item.ownership !== "owned"),
   );
-  useEffect(() => {
-    if (editing) nameField.current?.focus();
-  }, [editing]);
   const storage = item?.containerItemId
     ? `item:${item.containerItemId}`
     : item?.locationId
@@ -74,7 +69,14 @@ export function ItemForm({
         disabled={!hydrated || pending || navigating}
         className={classes.fields}
       >
-        <TextInput ref={nameField} name="name" label="品名" required maxLength={200} defaultValue={item?.name ?? ""} />
+        <TextInput
+          autoFocus={Boolean(item)}
+          name="name"
+          label="品名"
+          required
+          maxLength={200}
+          defaultValue={item?.name ?? ""}
+        />
         <NativeSelect name="storage" label="収納先" defaultValue={storage}>
           <option value="">未設定</option>
           <optgroup label="場所">
@@ -97,7 +99,7 @@ export function ItemForm({
         <Checkbox
           name="isContainer"
           label="ほかの物品を収納できる"
-          description="バッグや箱など。中身がある間はオフにできません。"
+          description="バッグや箱など"
           defaultChecked={item?.isContainer ?? false}
         />
         <details className={classes.details} open={hasDetails}>
@@ -113,7 +115,6 @@ export function ItemForm({
             <TextInput
               name="tags"
               label="タグ（カンマ区切り）"
-              description="タグは1つ40文字、20個まで設定できます。"
               maxLength={1000}
               placeholder="ガジェット, USB-C, 予備"
               defaultValue={item?.tags.join(", ") ?? ""}
@@ -139,14 +140,14 @@ export function ItemForm({
           <div className={classes.fields}>
             <Checkbox
               name="isPublic"
-              label="未ログインでも物品の基本情報を表示する"
-              description="持ち主の表示名・品名・状態と、以下の短い説明を公開します。管理メモ・収納先・タグ・画像は表示しません。uses API の公開設定とは別です。"
+              label="QR ページを公開する"
+              description="公開内容：持ち主の表示名・品名・状態・短い説明"
               defaultChecked={item?.isPublic ?? false}
             />
             <Textarea
               name="publicDescription"
               label="短い説明（QR 公開用）"
-              description={`${MAX_PUBLIC_DESCRIPTION_LENGTH}文字まで。管理メモからは自動転記しません。`}
+              description={`${MAX_PUBLIC_DESCRIPTION_LENGTH}文字まで`}
               rows={3}
               maxLength={MAX_PUBLIC_DESCRIPTION_LENGTH}
               defaultValue={item?.publicDescription ?? ""}

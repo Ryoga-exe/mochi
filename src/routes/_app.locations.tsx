@@ -75,9 +75,6 @@ function Locations() {
   return (
     <>
       <Title order={2}>場所を管理</Title>
-      <Text>
-        「自宅 › 作業部屋 › 棚」のように、場所を入れ子にできます。バッグやポーチは物品として登録してください。
-      </Text>
       <form key={editing?.id ?? "new"} method="post" onSubmit={submit}>
         <Fieldset
           legend={editing ? "場所を編集" : "場所を追加"}

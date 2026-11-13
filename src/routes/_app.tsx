@@ -47,7 +47,6 @@ function App() {
         </Title>
         <nav className={classes.navigation} aria-label="メイン">
           <Anchor renderRoot={(props) => <Link {...props} to="/" activeOptions={{ exact: true }} />}>物品一覧</Anchor>
-          <Anchor renderRoot={(props) => <Link {...props} to="/items/new" />}>物品を登録</Anchor>
           <Anchor renderRoot={(props) => <Link {...props} to="/locations" />}>場所を管理</Anchor>
         </nav>
         <div className={classes.account}>
