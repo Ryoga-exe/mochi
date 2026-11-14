@@ -1,4 +1,4 @@
-import { Alert, Anchor, Button, Checkbox, Fieldset, Textarea, TextInput, Title } from "@mantine/core";
+import { Alert, Anchor, Button, Checkbox, Fieldset, TagsInput, Textarea, TextInput, Title } from "@mantine/core";
 import { useHydrated, useRouterState } from "@tanstack/react-router";
 import { type FormEvent, useRef, useState } from "react";
 import { saveUsesAction, unpublishUsesAction } from "src/functions/media";
@@ -130,11 +130,14 @@ export function UsesForm({
             maxLength={100}
             placeholder="Desk setup"
           />
-          <TextInput
+          <TagsInput
             name="tags"
-            label="公開用のタグ（カンマ区切り）"
-            defaultValue={entry?.tags.join(", ") ?? ""}
-            maxLength={1000}
+            label="公開用のタグ"
+            placeholder="入力して Enter"
+            defaultValue={entry?.tags ?? []}
+            data={item.tags}
+            splitChars={[",", "、", "\n"]}
+            maxLength={40}
           />
           <TextInput
             type="number"

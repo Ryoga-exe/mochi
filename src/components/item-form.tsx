@@ -1,9 +1,10 @@
-import { Alert, Button, Checkbox, Fieldset, NativeSelect, Textarea, TextInput } from "@mantine/core";
+import { Alert, Button, Checkbox, Fieldset, NativeSelect, Select, TagsInput, Textarea, TextInput } from "@mantine/core";
 import { useHydrated, useRouterState } from "@tanstack/react-router";
 import type { FormEvent } from "react";
 import { saveItemAction } from "src/functions/inventory";
 import { useMutation } from "src/hooks/use-mutation";
 import {
+  availableTags,
   containerChoices,
   type InventoryIndex,
   type Item,
@@ -59,7 +60,7 @@ export function ItemForm({
   }
 
   return (
-    <form method="post" onSubmit={submit} className={classes.itemForm}>
+    <form method="post" onSubmit={submit} className={classes.form}>
       <Fieldset
         variant="unstyled"
         aria-label={item ? "物品を編集" : "物品を登録"}
@@ -74,37 +75,48 @@ export function ItemForm({
           maxLength={200}
           defaultValue={item?.name ?? ""}
         />
-        <NativeSelect name="storage" label="収納先" defaultValue={storage}>
-          <option value="">未設定</option>
-          <optgroup label="場所">
-            {inventory.locations.map((location) => (
-              <option key={location.id} value={`location:${location.id}`}>
-                {locationPath(location, inventory)
+        <Select
+          name="storage"
+          label="収納先"
+          placeholder="未設定"
+          defaultValue={storage || null}
+          searchable
+          clearable
+          nothingFoundMessage="一致する収納先がありません"
+          clearButtonProps={{ "aria-label": "収納先を解除", "aria-hidden": false, tabIndex: 0 }}
+          data={[
+            {
+              group: "場所",
+              items: inventory.locations.map((location) => ({
+                value: `location:${location.id}`,
+                label: locationPath(location, inventory)
                   .map((entry) => entry.name)
-                  .join(" › ")}
-              </option>
-            ))}
-          </optgroup>
-          <optgroup label="物品の中">
-            {containerChoices(inventory, item?.id).map((container) => (
-              <option key={container.id} value={`item:${container.id}`}>
-                {container.name} [{itemCode(container)}] — {storageLabel(container, inventory)}
-              </option>
-            ))}
-          </optgroup>
-        </NativeSelect>
+                  .join(" › "),
+              })),
+            },
+            {
+              group: "物品の中",
+              items: containerChoices(inventory, item?.id).map((container) => ({
+                value: `item:${container.id}`,
+                label: `${container.name} [${itemCode(container)}] — ${storageLabel(container, inventory)}`,
+              })),
+            },
+          ]}
+        />
         <Checkbox
           name="isContainer"
           label="ほかの物品を収納できる"
           description="バッグや箱など"
           defaultChecked={item?.isContainer ?? false}
         />
-        <TextInput
+        <TagsInput
           name="tags"
-          label="タグ（カンマ区切り）"
-          maxLength={1000}
-          placeholder="ガジェット, USB-C, 予備"
-          defaultValue={item?.tags.join(", ") ?? ""}
+          label="タグ"
+          placeholder="入力して Enter"
+          defaultValue={item?.tags ?? []}
+          data={availableTags(inventory)}
+          splitChars={[",", "、", "\n"]}
+          maxLength={40}
         />
         <div className={classes.formRow}>
           <NativeSelect name="status" label="状態" defaultValue={item?.status ?? "available"}>

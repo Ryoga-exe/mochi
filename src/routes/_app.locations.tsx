@@ -22,11 +22,7 @@ function Locations() {
   const save = useMutation(saveLocationAction);
   const deletion = useMutation(deleteLocationAction);
   const pending = save.pending || deletion.pending;
-  const error = save.error || deletion.error;
   const [message, setMessage] = useState("");
-  const parents = inventory.locations.filter(
-    (location) => !locationPath(location, inventory).some((part) => part.id === editing?.id),
-  );
 
   function clearFeedback() {
     save.clearError();
@@ -34,22 +30,28 @@ function Locations() {
     setMessage("");
   }
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  function finishEditing() {
+    const id = editing?.id;
+    setEditing(null);
+    if (id) requestAnimationFrame(() => document.getElementById(`location-${id}`)?.focus());
+  }
+
+  async function submit(event: FormEvent<HTMLFormElement>, location?: Location) {
     event.preventDefault();
     const form = event.currentTarget;
     const data = new FormData(form);
     clearFeedback();
     await save.run(
       {
-        id: editing?.id ?? null,
-        version: editing?.version ?? null,
+        id: location?.id ?? null,
+        version: location?.version ?? null,
         name: String(data.get("name") ?? ""),
         parentId: String(data.get("parentId") ?? "") || null,
       },
       async () => {
         await router.invalidate({ sync: true });
-        form.reset();
-        setEditing(null);
+        if (location) finishEditing();
+        else form.reset();
         setMessage("保存しました。");
       },
     );
@@ -65,43 +67,61 @@ function Locations() {
         clearFeedback();
         await deletion.run({ id: location.id, version: location.version }, async () => {
           await router.invalidate({ sync: true });
-          if (editing?.id === location.id) setEditing(null);
           setMessage("削除しました。");
         });
       },
     });
   }
 
-  return (
-    <>
-      <Title order={2}>場所を管理</Title>
-      <form key={editing?.id ?? "new"} method="post" onSubmit={submit}>
+  function renderForm(location?: Location) {
+    const active = !editing || editing.id === location?.id;
+    const parents = inventory.locations.filter(
+      (candidate) => !locationPath(candidate, inventory).some((part) => part.id === location?.id),
+    );
+    return (
+      <form method="post" onSubmit={(event) => submit(event, location)} className={classes.form}>
         <Fieldset
-          legend={editing ? "場所を編集" : "場所を追加"}
-          disabled={!hydrated || pending || navigating}
+          variant="unstyled"
+          legend={location ? undefined : "場所を追加"}
+          aria-label={location ? `${location.name}を編集` : "場所を追加"}
+          disabled={!hydrated || pending || navigating || !active}
           className={classes.fields}
         >
-          <TextInput name="name" label="場所名" required maxLength={100} defaultValue={editing?.name ?? ""} />
-          <NativeSelect name="parentId" label="親の場所" defaultValue={editing?.parentId ?? ""}>
-            <option value="">なし</option>
-            {parents.map((location) => (
-              <option key={location.id} value={location.id}>
-                {locationPath(location, inventory)
-                  .map((part) => part.name)
-                  .join(" › ")}
-              </option>
-            ))}
-          </NativeSelect>
+          <div className={classes.formRow}>
+            <TextInput
+              autoFocus={Boolean(location)}
+              name="name"
+              label="場所名"
+              required
+              maxLength={100}
+              defaultValue={location?.name ?? ""}
+            />
+            <NativeSelect name="parentId" label="親の場所" defaultValue={location?.parentId ?? ""}>
+              <option value="">なし</option>
+              {parents.map((parent) => (
+                <option key={parent.id} value={parent.id}>
+                  {locationPath(parent, inventory)
+                    .map((part) => part.name)
+                    .join(" › ")}
+                </option>
+              ))}
+            </NativeSelect>
+          </div>
+          {active && save.error && (
+            <Alert color="red" role="alert">
+              {save.error}
+            </Alert>
+          )}
           <div className={classes.actions}>
-            <Button type="submit" loading={save.pending}>
-              {pending ? "保存中…" : "保存"}
+            <Button type="submit" loading={active && save.pending}>
+              {location ? "変更を保存" : "追加"}
             </Button>
-            {editing && (
+            {location && (
               <Button
                 type="button"
                 variant="default"
                 onClick={() => {
-                  setEditing(null);
+                  finishEditing();
                   clearFeedback();
                 }}
               >
@@ -111,8 +131,19 @@ function Locations() {
           </div>
         </Fieldset>
       </form>
+    );
+  }
+
+  return (
+    <>
+      <Title order={2}>場所を管理</Title>
+      {renderForm()}
       {message && <Alert role="status">{message}</Alert>}
-      {error && <Alert color="red">{error}</Alert>}
+      {deletion.error && (
+        <Alert color="red" role="alert">
+          {deletion.error}
+        </Alert>
+      )}
       {!inventory.locations.length && <Text>場所はまだ登録されていません。</Text>}
       <ul className={classes.locations}>
         {inventory.locations.map((location) => {
@@ -121,34 +152,47 @@ function Locations() {
             inventory.items.some((item) => item.locationId === location.id);
           return (
             <li key={location.id} className={classes.fields}>
-              <div className={classes.actions}>
-                <Anchor renderRoot={(props) => <Link {...props} to="/" search={{ location: location.id }} />}>
+              <div className={classes.filterToolbar}>
+                <Anchor
+                  id={`location-${location.id}`}
+                  renderRoot={(props) => <Link {...props} to="/" search={{ location: location.id }} />}
+                >
                   {locationPath(location, inventory)
                     .map((part) => part.name)
                     .join(" › ")}
                 </Anchor>
-                <Button
-                  type="button"
-                  variant="default"
-                  disabled={pending || navigating}
-                  onClick={() => {
-                    setEditing(location);
-                    clearFeedback();
-                  }}
-                >
-                  編集
-                </Button>
-                <Button
-                  type="button"
-                  variant="light"
-                  color="red"
-                  disabled={pending || navigating || occupied}
-                  onClick={() => remove(location)}
-                >
-                  削除
-                </Button>
+                {editing?.id !== location.id && (
+                  <div className={classes.actions}>
+                    <Button
+                      type="button"
+                      variant="default"
+                      disabled={!hydrated || pending || navigating || editing !== null}
+                      onClick={() => {
+                        setEditing(location);
+                        clearFeedback();
+                      }}
+                    >
+                      編集
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="light"
+                      color="red"
+                      disabled={!hydrated || pending || navigating || editing !== null || occupied}
+                      onClick={() => remove(location)}
+                    >
+                      削除
+                    </Button>
+                  </div>
+                )}
               </div>
-              {occupied && <Text>物品または子の場所があるため削除できません。</Text>}
+              {editing?.id === location.id
+                ? renderForm(editing)
+                : occupied && (
+                    <Text size="sm" c="dimmed">
+                      物品または子の場所があるため削除できません。
+                    </Text>
+                  )}
             </li>
           );
         })}
