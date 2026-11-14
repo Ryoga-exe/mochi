@@ -1,7 +1,8 @@
-import { Anchor, Badge, Table } from "@mantine/core";
+import { Anchor, Badge, Card, Table, Text } from "@mantine/core";
 import { Link } from "@tanstack/react-router";
 import { Fragment } from "react";
-import { type InventoryIndex, type Item, itemCode, statusLabels, storagePath } from "src/lib/inventory";
+import { type InventoryIndex, type Item, itemCode, statusLabels, storageLabel, storagePath } from "src/lib/inventory";
+import { privateImageUrl } from "src/lib/media";
 import classes from "src/styles/layout.module.css";
 
 export function StoragePath({ item, inventory }: { item: Item; inventory: InventoryIndex }) {
@@ -78,4 +79,59 @@ export function ItemTags({ item }: { item: Pick<Item, "tags"> }) {
         </Fragment>
       ))
     : "なし";
+}
+
+export function ItemGrid({
+  items,
+  inventory,
+  thumbnails,
+}: {
+  items: Item[];
+  inventory: InventoryIndex;
+  thumbnails: Record<string, string | null>;
+}) {
+  return (
+    <ul className={classes.itemGrid} aria-label="物品一覧（サムネイル）">
+      {items.map((item) => {
+        const thumbnail = thumbnails[item.id];
+        const storage = storageLabel(item, inventory);
+        return (
+          <li key={item.id}>
+            <Card
+              withBorder
+              padding="sm"
+              className={classes.itemCard}
+              renderRoot={(props) => <Link {...props} to="/items/$code" params={{ code: itemCode(item) }} />}
+            >
+              <Card.Section className={classes.itemThumbnail}>
+                {thumbnail ? (
+                  <img src={privateImageUrl(thumbnail)} alt="" loading="lazy" decoding="async" />
+                ) : (
+                  <Text size="sm" c="dimmed">
+                    画像なし
+                  </Text>
+                )}
+              </Card.Section>
+              <Text size="sm" fw={600} lineClamp={2}>
+                {item.name}
+              </Text>
+              <small className={classes.code}>{itemCode(item)}</small>
+              <Text size="xs" c="dimmed" lineClamp={2} title={storage}>
+                {storage}
+              </Text>
+              <div className={classes.itemMeta}>
+                {item.isContainer && <Badge variant="light">収納可</Badge>}
+                {item.archivedAt !== null && <Badge color="gray">アーカイブ済み</Badge>}
+                {item.status !== "available" && (
+                  <Badge color="gray" variant="light">
+                    {statusLabels[item.status]}
+                  </Badge>
+                )}
+              </div>
+            </Card>
+          </li>
+        );
+      })}
+    </ul>
+  );
 }

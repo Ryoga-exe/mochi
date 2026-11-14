@@ -1,8 +1,8 @@
-import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
 import { type Inventory, registrationYearAt } from "src/lib/inventory";
 import { InventoryError } from "src/lib/mutation";
 import { getDb } from "./db";
-import { items, locations } from "./db/schema";
+import { itemAssets, items, locations } from "./db/schema";
 import type { ArchiveInput, ItemInput, LocationInput, TargetInput } from "./validation";
 
 export async function readInventory(database: D1Database): Promise<Inventory> {
@@ -12,6 +12,18 @@ export async function readInventory(database: D1Database): Promise<Inventory> {
     db.select().from(locations).orderBy(locations.name),
   ]);
   return { items: allItems, locations: allLocations };
+}
+
+export async function readItemThumbnails(database: D1Database): Promise<Record<string, string | null>> {
+  const db = getDb(database);
+  const firstImage = db
+    .select({ id: itemAssets.id })
+    .from(itemAssets)
+    .where(and(eq(itemAssets.itemId, items.id), eq(itemAssets.state, "ready")))
+    .orderBy(asc(itemAssets.createdAt), asc(itemAssets.id))
+    .limit(1);
+  const rows = await db.select({ itemId: items.id, assetId: sql<string | null>`(${firstImage})` }).from(items);
+  return Object.fromEntries(rows.map(({ itemId, assetId }) => [itemId, assetId]));
 }
 
 function stale(): never {

@@ -148,6 +148,34 @@
   min-width: 10rem;
 }
 
+.itemGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 12rem), 1fr));
+  gap: var(--mantine-spacing-md);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.itemCard {
+  height: 100%;
+  gap: var(--mantine-spacing-xs);
+  overflow-wrap: anywhere;
+}
+
+.itemThumbnail {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  background: var(--mantine-color-gray-0);
+}
+
+.itemThumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
 .itemMeta {
   display: flex;
   flex-wrap: wrap;
@@ -281,6 +309,10 @@
 }
 
 @media (max-width: 40em) {
+  .itemGrid {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 8rem), 1fr));
+  }
+
   .formRow {
     grid-template-columns: minmax(0, 1fr);
   }

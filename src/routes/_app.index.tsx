@@ -1,8 +1,21 @@
-import { Anchor, Button, Fieldset, Modal, Pill, SegmentedControl, Select, Text, TextInput, Title } from "@mantine/core";
+import {
+  ActionIcon,
+  Anchor,
+  Button,
+  Fieldset,
+  Modal,
+  Pill,
+  SegmentedControl,
+  Select,
+  Text,
+  TextInput,
+  Title,
+} from "@mantine/core";
+import { useLocalStorage } from "@mantine/hooks";
 import { createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { type FormEvent, useMemo, useState } from "react";
-import { ItemTable } from "src/components/inventory";
-import { getInventory } from "src/functions/inventory";
+import { ItemGrid, ItemTable } from "src/components/inventory";
+import { getItemList } from "src/functions/inventory";
 import { availableTags, createInventoryIndex, filterItems, locationPath, statusLabels } from "src/lib/inventory";
 import { itemStatuses } from "src/lib/item-attributes";
 import classes from "src/styles/layout.module.css";
@@ -35,7 +48,7 @@ const archiveOptions = [
 
 export const Route = createFileRoute("/_app/")({
   validateSearch: searchSchema,
-  loader: () => getInventory(),
+  loader: () => getItemList(),
   component: ItemList,
 });
 
@@ -46,6 +59,8 @@ function ItemList() {
   const navigate = useNavigate();
   const navigating = useRouterState({ select: (state) => state.status === "pending" });
   const filtered = filterItems(inventory, search);
+  const [view, setView] = useLocalStorage({ key: "mochi:inventory-view", defaultValue: "table" });
+  const gridView = view === "grid";
   const [filtersOpened, setFiltersOpened] = useState(false);
   const [draftFilters, setDraftFilters] = useState(defaultFilters);
   const tags = availableTags(inventory).map((tag) => ({ value: tag, label: tag }));
@@ -136,22 +151,74 @@ function ItemList() {
             </Anchor>
           )}
         </div>
-        <Button
-          type="button"
-          variant={activeFilters.length ? "light" : "default"}
-          disabled={navigating}
-          onClick={() => {
-            setDraftFilters({
-              tag: search.tag,
-              location: search.location,
-              status: search.status,
-              archived: search.archived,
-            });
-            setFiltersOpened(true);
-          }}
-        >
-          絞り込み{activeFilters.length > 0 && `（${activeFilters.length}）`}
-        </Button>
+        <div className={classes.actions}>
+          <ActionIcon.Group role="group" aria-label="表示形式">
+            <ActionIcon
+              type="button"
+              size="input-sm"
+              variant={gridView ? "default" : "light"}
+              aria-label="テーブル表示"
+              title="テーブル表示"
+              aria-pressed={!gridView}
+              disabled={navigating}
+              onClick={() => setView("table")}
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                aria-hidden="true"
+              >
+                <rect x="3" y="4" width="18" height="16" rx="2" />
+                <path d="M3 10h18M3 15h18M9 10v10" />
+              </svg>
+            </ActionIcon>
+            <ActionIcon
+              type="button"
+              size="input-sm"
+              variant={gridView ? "light" : "default"}
+              aria-label="サムネイル表示"
+              title="サムネイル表示"
+              aria-pressed={gridView}
+              disabled={navigating}
+              onClick={() => setView("grid")}
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                aria-hidden="true"
+              >
+                <rect x="3" y="3" width="7" height="7" rx="1" />
+                <rect x="14" y="3" width="7" height="7" rx="1" />
+                <rect x="3" y="14" width="7" height="7" rx="1" />
+                <rect x="14" y="14" width="7" height="7" rx="1" />
+              </svg>
+            </ActionIcon>
+          </ActionIcon.Group>
+          <Button
+            type="button"
+            variant={activeFilters.length ? "light" : "default"}
+            disabled={navigating}
+            onClick={() => {
+              setDraftFilters({
+                tag: search.tag,
+                location: search.location,
+                status: search.status,
+                archived: search.archived,
+              });
+              setFiltersOpened(true);
+            }}
+          >
+            絞り込み{activeFilters.length > 0 && `（${activeFilters.length}）`}
+          </Button>
+        </div>
       </div>
       {activeFilters.length > 0 && (
         <Pill.Group role="group" aria-label="適用中の絞り込み条件">
@@ -237,7 +304,11 @@ function ItemList() {
         </form>
       </Modal>
       {filtered.length ? (
-        <ItemTable items={filtered} inventory={inventory} />
+        gridView ? (
+          <ItemGrid items={filtered} inventory={inventory} thumbnails={data.thumbnails} />
+        ) : (
+          <ItemTable items={filtered} inventory={inventory} />
+        )
       ) : (
         <Text>{inventory.items.length ? "条件に一致する物品がありません。" : "物品はまだ登録されていません。"}</Text>
       )}

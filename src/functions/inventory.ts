@@ -1,7 +1,14 @@
 import { env } from "cloudflare:workers";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeaders, setResponseHeader } from "@tanstack/react-start/server";
-import { archiveItem, deleteLocation, readInventory, saveItem, saveLocation } from "src/server/inventory";
+import {
+  archiveItem,
+  deleteLocation,
+  readInventory,
+  readItemThumbnails,
+  saveItem,
+  saveLocation,
+} from "src/server/inventory";
 import { validatedMutation, validateInput } from "src/server/mutation";
 import { getAdministrator } from "src/server/session";
 import { archiveInputSchema, itemInputSchema, locationInputSchema, targetSchema } from "src/server/validation";
@@ -15,6 +22,13 @@ export const getViewer = createServerFn({ method: "GET" }).handler(async () => {
 export const getInventory = createServerFn({ method: "GET" })
   .middleware([administratorOnly])
   .handler(() => readInventory(env.DB));
+
+export const getItemList = createServerFn({ method: "GET" })
+  .middleware([administratorOnly])
+  .handler(async () => {
+    const [inventory, thumbnails] = await Promise.all([readInventory(env.DB), readItemThumbnails(env.DB)]);
+    return { ...inventory, thumbnails };
+  });
 
 export const saveItemAction = createServerFn({ method: "POST" })
   .middleware([administratorOnly])

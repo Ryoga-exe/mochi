@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { assetReference, type PublicUse } from "src/lib/media";
 import { getDb } from "src/server/db";
 import { itemAssets } from "src/server/db/schema";
-import { archiveItem, saveItem } from "src/server/inventory";
+import { archiveItem, readItemThumbnails, saveItem } from "src/server/inventory";
 import { addImage, readItemMedia, removeImage } from "src/server/media";
 import { publicImageResponse, publicUsesResponse } from "src/server/media-http";
 import { mutation } from "src/server/mutation";
@@ -36,6 +36,28 @@ const input = (itemId: string, extra: Record<string, unknown> = {}) =>
     ...extra,
   });
 const save = (value: UsesInput) => saveUsesEntry(proxy.env.DB, value, "https://mochi.example");
+
+test("uses the first ready image as a thumbnail and falls back after state changes or deletion", async () => {
+  const object = await item();
+  const empty = await item();
+  const first = await addImage(proxy.env, object.id, "first.png", png);
+  const second = await addImage(proxy.env, object.id, "second.png", png);
+  const db = getDb(proxy.env.DB);
+  await db.update(itemAssets).set({ createdAt: 1 }).where(eq(itemAssets.id, first.id));
+  await db.update(itemAssets).set({ createdAt: 2 }).where(eq(itemAssets.id, second.id));
+  expect(await readItemThumbnails(proxy.env.DB)).toMatchObject({ [object.id]: first.id, [empty.id]: null });
+  await db.update(itemAssets).set({ state: "uploading" }).where(eq(itemAssets.id, first.id));
+  expect((await readItemThumbnails(proxy.env.DB))[object.id]).toBe(second.id);
+  await db.update(itemAssets).set({ state: "ready" }).where(eq(itemAssets.id, first.id));
+  await db.update(itemAssets).set({ createdAt: 1 }).where(eq(itemAssets.id, second.id));
+  const [earlier, later] = [first.id, second.id].sort();
+  expect((await readItemThumbnails(proxy.env.DB))[object.id]).toBe(earlier);
+  await db.update(itemAssets).set({ state: "deleting" }).where(eq(itemAssets.id, earlier));
+  expect((await readItemThumbnails(proxy.env.DB))[object.id]).toBe(later);
+  await removeImage(proxy.env, earlier);
+  await removeImage(proxy.env, later);
+  expect((await readItemThumbnails(proxy.env.DB))[object.id]).toBeNull();
+});
 
 test("validates publication fields and image selection, and accepts only HTTP product links", () => {
   const itemId = crypto.randomUUID();
