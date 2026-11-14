@@ -18,6 +18,7 @@ function Locations() {
   const router = useRouter();
   const hydrated = useHydrated();
   const navigating = useRouterState({ select: (state) => state.status === "pending" });
+  const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<Location | null>(null);
   const save = useMutation(saveLocationAction);
   const deletion = useMutation(deleteLocationAction);
@@ -33,13 +34,13 @@ function Locations() {
   function finishEditing() {
     const id = editing?.id;
     setEditing(null);
-    if (id) requestAnimationFrame(() => document.getElementById(`location-${id}`)?.focus());
+    setAdding(false);
+    requestAnimationFrame(() => document.getElementById(id ? `location-${id}` : "add-location")?.focus());
   }
 
   async function submit(event: FormEvent<HTMLFormElement>, location?: Location) {
     event.preventDefault();
-    const form = event.currentTarget;
-    const data = new FormData(form);
+    const data = new FormData(event.currentTarget);
     clearFeedback();
     await save.run(
       {
@@ -50,8 +51,7 @@ function Locations() {
       },
       async () => {
         await router.invalidate({ sync: true });
-        if (location) finishEditing();
-        else form.reset();
+        finishEditing();
         setMessage("保存しました。");
       },
     );
@@ -74,7 +74,6 @@ function Locations() {
   }
 
   function renderForm(location?: Location) {
-    const active = !editing || editing.id === location?.id;
     const parents = inventory.locations.filter(
       (candidate) => !locationPath(candidate, inventory).some((part) => part.id === location?.id),
     );
@@ -84,12 +83,12 @@ function Locations() {
           variant="unstyled"
           legend={location ? undefined : "場所を追加"}
           aria-label={location ? `${location.name}を編集` : "場所を追加"}
-          disabled={!hydrated || pending || navigating || !active}
+          disabled={!hydrated || pending || navigating}
           className={classes.fields}
         >
           <div className={classes.formRow}>
             <TextInput
-              autoFocus={Boolean(location)}
+              autoFocus
               name="name"
               label="場所名"
               required
@@ -107,27 +106,25 @@ function Locations() {
               ))}
             </NativeSelect>
           </div>
-          {active && save.error && (
+          {save.error && (
             <Alert color="red" role="alert">
               {save.error}
             </Alert>
           )}
           <div className={classes.actions}>
-            <Button type="submit" loading={active && save.pending}>
+            <Button type="submit" loading={save.pending}>
               {location ? "変更を保存" : "追加"}
             </Button>
-            {location && (
-              <Button
-                type="button"
-                variant="default"
-                onClick={() => {
-                  finishEditing();
-                  clearFeedback();
-                }}
-              >
-                キャンセル
-              </Button>
-            )}
+            <Button
+              type="button"
+              variant="default"
+              onClick={() => {
+                finishEditing();
+                clearFeedback();
+              }}
+            >
+              キャンセル
+            </Button>
           </div>
         </Fieldset>
       </form>
@@ -136,8 +133,23 @@ function Locations() {
 
   return (
     <>
-      <Title order={2}>場所を管理</Title>
-      {renderForm()}
+      <div className={classes.pageHeading}>
+        <Title order={2}>場所を管理</Title>
+        {!adding && (
+          <Button
+            id="add-location"
+            type="button"
+            disabled={!hydrated || pending || navigating || editing !== null}
+            onClick={() => {
+              clearFeedback();
+              setAdding(true);
+            }}
+          >
+            場所を追加
+          </Button>
+        )}
+      </div>
+      {adding && renderForm()}
       {message && <Alert role="status">{message}</Alert>}
       {deletion.error && (
         <Alert color="red" role="alert">
@@ -166,7 +178,7 @@ function Locations() {
                     <Button
                       type="button"
                       variant="default"
-                      disabled={!hydrated || pending || navigating || editing !== null}
+                      disabled={!hydrated || pending || navigating || adding || editing !== null}
                       onClick={() => {
                         setEditing(location);
                         clearFeedback();
@@ -178,7 +190,7 @@ function Locations() {
                       type="button"
                       variant="light"
                       color="red"
-                      disabled={!hydrated || pending || navigating || editing !== null || occupied}
+                      disabled={!hydrated || pending || navigating || adding || editing !== null || occupied}
                       onClick={() => remove(location)}
                     >
                       削除

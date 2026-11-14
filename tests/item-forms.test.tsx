@@ -8,16 +8,20 @@ import {
   createRouter,
   RouterContextProvider,
 } from "@tanstack/react-router";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { ItemForm } from "src/components/item-form";
 import { ItemPublicForm } from "src/components/item-public-form";
+import { UsesForm } from "src/components/uses-form";
 import { saveItemAction } from "src/functions/inventory";
+import { saveUsesAction } from "src/functions/media";
 import { createInventoryIndex, type Item, type Location } from "src/lib/inventory";
-import { itemInputSchema } from "src/server/validation";
+import { assetReference, type ItemAsset, type UsesEntry } from "src/lib/media";
+import { itemInputSchema, usesInputSchema } from "src/server/validation";
 import { afterEach, expect, test, vi } from "vitest";
 
 vi.mock("src/functions/inventory", () => ({ saveItemAction: vi.fn() }));
+vi.mock("src/functions/media", () => ({ saveUsesAction: vi.fn(), unpublishUsesAction: vi.fn() }));
 
 // Happy DOM lacks the font events used by Mantine's autosizing textarea.
 Object.defineProperty(document, "fonts", { value: new EventTarget() });
@@ -63,6 +67,36 @@ const pouch: Item = {
   isContainer: true,
   locationId: room.id,
   tags: ["旅行"],
+};
+
+const photo: ItemAsset = {
+  id: "55555555-5555-4555-8555-555555555555",
+  itemId: item.id,
+  objectKey: "private/photo.png",
+  filename: "正面.png",
+  contentType: "image/png",
+  bytes: 100,
+  width: 4,
+  height: 3,
+  state: "ready",
+  createdAt: 0,
+};
+const sidePhoto: ItemAsset = { ...photo, id: "66666666-6666-4666-8666-666666666666", filename: "横から.png" };
+const usesEntry: UsesEntry = {
+  id: "44444444-4444-4444-8444-444444444444",
+  itemId: item.id,
+  title: "使っているカメラ",
+  descriptionMarkdown: "前の文\n\n後の文",
+  externalUrl: "https://example.com/camera",
+  section: "Camera",
+  tags: ["撮影"],
+  images: [],
+  sortOrder: 2,
+  isPublished: false,
+  publicContent: null,
+  version: 4,
+  createdAt: 0,
+  updatedAt: 0,
 };
 
 function setup() {
@@ -171,4 +205,67 @@ test("editing QR publication preserves inventory information and its version", a
     isPublic: false,
     publicDescription: "公開用の新しい説明",
   });
+});
+
+test("uses saves selected ready images in order while preserving their settings and publication fields", async () => {
+  const { wrapper, onSaved: onChanged } = setup();
+  const originalImage = { assetId: photo.id, alt: "カメラの正面", caption: "元の説明", inGallery: false };
+  const entry = { ...usesEntry, images: [originalImage] };
+  vi.mocked(saveUsesAction).mockResolvedValue({ ok: true, value: entry });
+  render(
+    <UsesForm
+      item={item}
+      entry={entry}
+      assets={[
+        photo,
+        sidePhoto,
+        { ...photo, id: "77777777-7777-4777-8777-777777777777", filename: "処理中.png", state: "uploading" },
+      ]}
+      onChanged={onChanged}
+    />,
+    { wrapper },
+  );
+  expect(screen.getByRole("checkbox", { name: "公開する画像：正面.png" }).getAttribute("aria-checked")).toBe("true");
+  expect(screen.queryByRole("checkbox", { name: "公開する画像：処理中.png" })).toBeNull();
+  fireEvent.click(screen.getByRole("checkbox", { name: "公開する画像：横から.png" }));
+  const settings = screen.getByText("画像 1 の設定").closest("details") as HTMLDetailsElement;
+  fireEvent.click(settings.querySelector("summary") as HTMLElement);
+  expect(settings.open).toBe(true);
+  fireEvent.change(within(settings).getByRole("textbox", { name: "画像の説明" }), {
+    target: { value: "更新した説明" },
+  });
+  fireEvent.click(within(settings).getByRole("button", { name: "後へ" }));
+  expect(saveUsesAction).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "非公開で保存" }));
+  await waitFor(() => expect(onChanged).toHaveBeenCalledOnce());
+  expect(usesInputSchema.parse(vi.mocked(saveUsesAction).mock.lastCall?.[0].data)).toEqual(
+    usesInputSchema.parse({
+      ...entry,
+      images: [
+        { assetId: sidePhoto.id, alt: "", caption: "", inGallery: true },
+        { ...originalImage, caption: "更新した説明" },
+      ],
+    }),
+  );
+});
+
+test("inserting an image adds it at the cursor as a body-only image and keeps the draft private", async () => {
+  const { wrapper, onSaved: onChanged } = setup();
+  vi.mocked(saveUsesAction).mockResolvedValue({ ok: true, value: usesEntry });
+  render(<UsesForm item={item} entry={usesEntry} assets={[photo, sidePhoto]} onChanged={onChanged} />, { wrapper });
+  const textarea = screen.getByRole("textbox", { name: "公開用の説明（Markdown）" }) as HTMLTextAreaElement;
+  textarea.setSelectionRange(3, 3);
+  fireEvent.click(screen.getByRole("button", { name: "本文に挿入：正面.png" }));
+  expect(screen.getByRole("checkbox", { name: "公開する画像：正面.png" }).getAttribute("aria-checked")).toBe("true");
+  expect(screen.getByRole("checkbox", { name: "公開する画像：横から.png" }).getAttribute("aria-checked")).toBe("false");
+  expect(saveUsesAction).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "非公開で保存" }));
+  await waitFor(() => expect(onChanged).toHaveBeenCalledOnce());
+  expect(usesInputSchema.parse(vi.mocked(saveUsesAction).mock.lastCall?.[0].data)).toEqual(
+    usesInputSchema.parse({
+      ...usesEntry,
+      descriptionMarkdown: `前の文\n\n![画像の説明](${assetReference(photo.id)})\n\n\n\n後の文`,
+      images: [{ assetId: photo.id, alt: "", caption: "", inGallery: false }],
+    }),
+  );
 });
