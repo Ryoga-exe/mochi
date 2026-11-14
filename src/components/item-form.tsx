@@ -29,9 +29,6 @@ export function ItemForm({
   const { run, pending, error } = useMutation(saveItemAction);
   const hydrated = useHydrated();
   const navigating = useRouterState({ select: (state) => state.status === "pending" });
-  const hasDetails = Boolean(
-    item && (item.description || item.tags.length || item.status !== "available" || item.ownership !== "owned"),
-  );
   const storage = item?.containerItemId
     ? `item:${item.containerItemId}`
     : item?.locationId
@@ -62,7 +59,7 @@ export function ItemForm({
   }
 
   return (
-    <form method="post" onSubmit={submit}>
+    <form method="post" onSubmit={submit} className={classes.itemForm}>
       <Fieldset
         variant="unstyled"
         aria-label={item ? "物品を編集" : "物品を登録"}
@@ -102,39 +99,38 @@ export function ItemForm({
           description="バッグや箱など"
           defaultChecked={item?.isContainer ?? false}
         />
-        <details className={classes.details} open={hasDetails}>
-          <summary>メモ・タグ・状態など</summary>
-          <div className={classes.fields}>
-            <Textarea
-              name="description"
-              label="説明・メモ"
-              rows={6}
-              maxLength={10000}
-              defaultValue={item?.description ?? ""}
-            />
-            <TextInput
-              name="tags"
-              label="タグ（カンマ区切り）"
-              maxLength={1000}
-              placeholder="ガジェット, USB-C, 予備"
-              defaultValue={item?.tags.join(", ") ?? ""}
-            />
-            <NativeSelect name="status" label="状態" defaultValue={item?.status ?? "available"}>
-              {Object.entries(statusLabels).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </NativeSelect>
-            <NativeSelect name="ownership" label="所有関係" defaultValue={item?.ownership ?? "owned"}>
-              {Object.entries(ownershipLabels).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </NativeSelect>
-          </div>
-        </details>
+        <TextInput
+          name="tags"
+          label="タグ（カンマ区切り）"
+          maxLength={1000}
+          placeholder="ガジェット, USB-C, 予備"
+          defaultValue={item?.tags.join(", ") ?? ""}
+        />
+        <div className={classes.formRow}>
+          <NativeSelect name="status" label="状態" defaultValue={item?.status ?? "available"}>
+            {Object.entries(statusLabels).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </NativeSelect>
+          <NativeSelect name="ownership" label="所有関係" defaultValue={item?.ownership ?? "owned"}>
+            {Object.entries(ownershipLabels).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </NativeSelect>
+        </div>
+        <Textarea
+          name="description"
+          label="説明・メモ"
+          autosize
+          minRows={3}
+          maxRows={8}
+          maxLength={10000}
+          defaultValue={item?.description ?? ""}
+        />
         {error && <Alert color="red">{error}</Alert>}
         <div className={classes.actions}>
           <Button type="submit" loading={pending}>

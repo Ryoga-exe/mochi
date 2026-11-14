@@ -19,6 +19,9 @@ import { afterEach, expect, test, vi } from "vitest";
 
 vi.mock("src/functions/inventory", () => ({ saveItemAction: vi.fn() }));
 
+// Happy DOM lacks the font events used by Mantine's autosizing textarea.
+Object.defineProperty(document, "fonts", { value: new EventTarget() });
+
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
